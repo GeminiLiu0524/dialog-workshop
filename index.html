@@ -1,0 +1,2211 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Dialog 工坊 — Minecraft 對話框生成器</title>
+<meta name="description" content="可預覽、可存專案、從零開始做 Minecraft 互動式對話框（dialog）的生成器，一鍵匯出資料包。">
+<meta property="og:title" content="Dialog 工坊 — Minecraft 對話框生成器">
+<meta property="og:description" content="Minecraft 1.21.6+／26.x 對話框（dialog）生成器：即時預覽、流程圖、匯入資料包、一鍵匯出。">
+<meta name="theme-color" content="#101216">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Crect x='1' y='2' width='14' height='10' fill='%23262a33' stroke='%236fd08c'/%3E%3Crect x='3' y='5' width='4' height='2' fill='%236fd08c'/%3E%3Crect x='9' y='5' width='4' height='2' fill='%236fd08c'/%3E%3Crect x='3' y='8' width='10' height='2' fill='%239aa1b0'/%3E%3Cpath d='M4 12 L4 15 L7 12' fill='%236fd08c'/%3E%3C/svg%3E">
+<style>
+:root{color-scheme:dark;
+  --bg:#16181d;--panel:#1e2128;--panel2:#262a33;--line:#343945;--text:#e6e8ee;--dim:#9aa1b0;
+  --accent:#6fd08c;--accent2:#58b8ff;--warn:#ffcc55;--err:#ff6b6b;--orange:#ffa04a;
+  --r:8px;
+}
+*{box-sizing:border-box}
+html,body{margin:0;height:100%;background:var(--bg);color:var(--text);
+  font:14px/1.45 "Noto Sans TC","Microsoft JhengHei","PingFang TC",system-ui,sans-serif}
+button,input,select,textarea{font:inherit;color:inherit}
+button{cursor:pointer}
+#app{display:grid;grid-template-rows:auto 1fr;height:100vh}
+/* ---------- 頂列 ---------- */
+#top{display:flex;align-items:center;gap:8px;padding:8px 12px;background:#101216;border-bottom:1px solid var(--line);flex-wrap:wrap}
+#top .logo{font-weight:700;font-size:16px;margin-right:6px;white-space:nowrap}
+#top .logo b{color:var(--accent)}
+#top .pname{color:var(--dim);margin-right:auto;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:30vw}
+.tb{background:var(--panel2);border:1px solid var(--line);border-radius:6px;padding:5px 10px;white-space:nowrap}
+.tb:hover{border-color:#556}
+.tb.pri{background:#2b5a3a;border-color:#3d8a55}
+.tb.pri:hover{background:#336b45}
+.tb:disabled{opacity:.4;cursor:default}
+/* ---------- 三欄 ---------- */
+#main{display:grid;grid-template-columns:250px minmax(380px,1fr) minmax(360px,44%);min-height:0}
+#side,#mid,#right{min-height:0;overflow:hidden;display:flex;flex-direction:column}
+#side{background:var(--panel);border-right:1px solid var(--line)}
+#mid{border-right:1px solid var(--line)}
+.sec-h{display:flex;align-items:center;gap:6px;padding:8px 10px;color:var(--dim);font-size:12px;letter-spacing:.05em}
+.sec-h .sp{flex:1}
+.scroll{overflow:auto;min-height:0}
+/* 側欄 */
+.proj{padding:10px;border-bottom:1px solid var(--line);display:grid;gap:6px}
+.proj label{display:grid;grid-template-columns:62px 1fr;align-items:center;gap:6px;font-size:12px;color:var(--dim)}
+.proj input{background:var(--bg);border:1px solid var(--line);border-radius:5px;padding:4px 6px;min-width:0}
+#dlist{flex:1;padding:0 6px 8px}
+.ditem{display:flex;align-items:center;gap:8px;padding:6px 8px;border-radius:6px;cursor:pointer;border:1px solid transparent}
+.ditem:hover{background:var(--panel2)}
+.ditem.on{background:#2a3a30;border-color:#3d6b4b}
+.ditem .ic{width:22px;text-align:center;flex:none}
+.ditem .tx{min-width:0;flex:1}
+.ditem .t1{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.ditem .t2{font-size:11px;color:var(--dim);font-family:Consolas,monospace;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.ditem .bad{color:var(--err);font-size:12px}
+.ditem .star{color:var(--warn);font-size:12px}
+.dfold{display:flex;align-items:center;gap:6px;padding:5px 8px;border-radius:6px;cursor:pointer;color:var(--dim);user-select:none}
+.dfold:hover{background:var(--panel2);color:var(--text)}
+.dfold .ar{width:12px;text-align:center;font-size:11px;flex:none}
+.dfold .nm{flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-family:Consolas,monospace;font-size:12.5px}
+.dfold.cur{color:var(--accent)}
+.dfold .bad{color:var(--err);font-size:12px}
+.dguide{border-left:1px solid #2f3440;margin-left:13px;padding-left:4px}
+.side-foot{border-top:1px solid var(--line);padding:8px;display:flex;gap:6px;flex-wrap:wrap}
+/* 中欄分頁 */
+.tabs{display:flex;gap:2px;padding:6px 10px 0;border-bottom:1px solid var(--line);background:var(--panel)}
+.tab{padding:7px 14px;border:1px solid transparent;border-bottom:none;border-radius:6px 6px 0 0;color:var(--dim);background:none}
+.tab.on{background:var(--bg);border-color:var(--line);color:var(--text);margin-bottom:-1px}
+#midBody{flex:1;padding:12px 14px 60px}
+/* 卡片 */
+.card{background:var(--panel);border:1px solid var(--line);border-radius:var(--r);margin-bottom:12px}
+.card>.ch{display:flex;align-items:center;gap:8px;padding:9px 12px;font-weight:600;cursor:pointer;user-select:none}
+.card>.ch .arrow{color:var(--dim);transition:transform .15s}
+.card.closed>.ch .arrow{transform:rotate(-90deg)}
+.card.closed>.cb{display:none}
+.card>.ch .cnt{color:var(--dim);font-weight:400;font-size:12px}
+.card>.cb{padding:4px 12px 12px}
+.sub{background:var(--panel2);border:1px solid var(--line);border-radius:7px;margin:8px 0;}
+.sub>.sh{display:flex;align-items:center;gap:6px;padding:6px 8px 6px 10px;border-bottom:1px solid var(--line);font-size:13px}
+.sub>.sh .ttl{flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.sub>.sh .ttl small{color:var(--dim);margin-left:6px}
+.sub>.sb{padding:8px 10px}
+.sub.fold>.sb{display:none}
+.ib{background:none;border:1px solid transparent;border-radius:5px;padding:1px 6px;color:var(--dim);line-height:1.4}
+.ib:hover{border-color:var(--line);color:var(--text);background:var(--bg)}
+.ib.del:hover{color:var(--err)}
+.row{display:grid;grid-template-columns:110px 1fr;gap:8px;align-items:start;margin:6px 0}
+.row>.lbl{color:var(--dim);font-size:13px;padding-top:5px}
+.row>.ctl{min-width:0;display:flex;flex-direction:column;gap:3px}
+.help{font-size:12px;color:var(--dim)}
+.help code,.mono{font-family:Consolas,"Cascadia Mono",monospace}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:0 16px}
+.grid2 .row{grid-template-columns:auto 1fr}
+.grid2 .row>.lbl{min-width:56px}
+input[type=text],input[type=number],select,textarea{background:var(--bg);border:1px solid var(--line);border-radius:5px;padding:5px 7px;width:100%;min-width:0}
+input:focus,select:focus,textarea:focus{outline:none;border-color:var(--accent2)}
+textarea{resize:vertical}
+textarea.code{font-family:Consolas,"Cascadia Mono",monospace;font-size:13px;min-height:70px}
+.chk{display:flex;align-items:center;gap:6px;padding-top:4px}
+.chk input{width:16px;height:16px;accent-color:var(--accent)}
+.addbar{display:flex;gap:6px;flex-wrap:wrap;margin-top:8px}
+.add{background:none;border:1px dashed #4a5060;border-radius:6px;padding:5px 10px;color:var(--dim)}
+.add:hover{border-color:var(--accent);color:var(--accent)}
+.chip{display:inline-block;background:#26334a;border:1px solid #38507a;color:#bcd6ff;border-radius:12px;padding:0 8px;margin:2px 4px 2px 0;font-family:Consolas,monospace;font-size:12px;cursor:pointer}
+.chip:hover{background:#30436a}
+.badge{display:inline-block;font-size:11px;border-radius:9px;padding:0 7px;background:#333a48;color:var(--dim);font-weight:400}
+.badge.g{background:#24452f;color:#9fe5b4}
+.badge.o{background:#4a3520;color:#ffc58f}
+.badge.b{background:#203a52;color:#9fd2ff}
+.warns{border:1px solid #5a4a20;background:#2c2614;border-radius:var(--r);padding:8px 12px;margin-bottom:12px;font-size:13px}
+.warns div{margin:2px 0}
+.warns .e{color:#ff9d9d}
+.warns .w{color:#ffd98a}
+.empty{color:var(--dim);text-align:center;padding:60px 20px}
+/* 文字元件編輯器 */
+.ted{display:flex;flex-direction:column;gap:4px}
+.seg{display:flex;flex-direction:column;background:var(--bg);border:1px solid var(--line);border-radius:6px}
+.seg:focus-within{border-color:#4b6a9a}
+.seg-top{display:flex;flex-wrap:wrap;align-items:flex-start;gap:4px;padding:3px}
+.seg textarea{border:none;background:none;padding:4px 6px;resize:none;overflow:hidden;min-height:28px;flex:1 1 90px;min-width:0;
+  text-shadow:1px 1px 0 rgba(0,0,0,.6)}
+.seg textarea:focus{border:none}
+.seg-tools{display:flex;flex-wrap:wrap;justify-content:flex-end;gap:2px;flex:0 1 auto;min-width:0;align-items:center;padding-top:2px;margin-left:auto}
+.ted,.sub,.sb,.card{min-width:0}
+#midBody{overflow-x:hidden}
+.tog{width:24px;height:24px;border-radius:4px;border:1px solid transparent;background:none;color:var(--dim);padding:0;font-size:13px}
+.tog:hover{border-color:var(--line)}
+.tog.on{background:#34445e;color:#fff;border-color:#4d6690}
+.sw{width:20px;height:20px;border-radius:4px;border:1px solid #666;padding:0;margin:0 3px}
+.sw.def{background:repeating-linear-gradient(45deg,#ddd 0 4px,#999 4px 8px)}
+.seg-more{border-top:1px dashed var(--line);padding:6px 8px;display:none}
+.seg.more .seg-more{display:block}
+.seg-more .row{grid-template-columns:80px 1fr}
+.ted-foot{display:flex;gap:8px;align-items:center}
+.mini{background:none;border:none;color:var(--dim);font-size:12px;padding:0 2px}
+.mini:hover{color:var(--accent)}
+/* 色盤 */
+#pop{position:fixed;z-index:50;background:var(--panel2);border:1px solid var(--line);border-radius:8px;padding:8px;box-shadow:0 8px 30px rgba(0,0,0,.5);display:none;width:228px}
+#pop .cols{display:grid;grid-template-columns:repeat(8,1fr);gap:4px;margin-bottom:8px}
+#pop .cols button{height:22px;border-radius:4px;border:1px solid #000}
+#pop .cols button:hover{outline:2px solid #fff}
+#pop .hexrow{display:flex;gap:6px}
+/* 右欄預覽 */
+.pv-bar{display:flex;gap:6px;align-items:center;padding:8px 10px;background:var(--panel);border-bottom:1px solid var(--line);flex-wrap:wrap}
+.pv-bar select{width:auto}
+.pv-bar .crumb{flex:1;font-size:12px;color:var(--dim);min-width:80px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+#pvWrap{flex:1;min-height:0;display:flex;align-items:center;justify-content:center;padding:10px;background:#0c0d10;overflow:hidden}
+#pvBox{position:relative;flex:none;box-shadow:0 6px 30px rgba(0,0,0,.6)}
+#scr{position:absolute;left:0;top:0;transform-origin:0 0;overflow:hidden;
+  font-family:"Minecraft","Monocraft","Unifont","Microsoft JhengHei","PingFang TC",sans-serif;color:#fff;user-select:none}
+#pvLog{height:150px;border-top:1px solid var(--line);background:var(--panel);display:flex;flex-direction:column}
+#pvLog .lg{flex:1;overflow:auto;padding:4px 10px;font-family:Consolas,monospace;font-size:12px}
+#pvLog .lg div{padding:1px 0;border-bottom:1px solid #22262e;white-space:pre-wrap;word-break:break-all}
+#pvLog .lg .c{color:#9fe5b4}
+#pvLog .lg .n{color:var(--dim)}
+#pvLog .lg .u{color:#9fd2ff}
+/* ---------- 模擬 Minecraft 畫面 ---------- */
+.mc-world{position:absolute;inset:0;background:
+  linear-gradient(#7ba4f0 0 46%,#a9c6f5 58%,#5f8f3a 58%,#4f7a30 70%,#6b5236 70%,#5a4430 100%);filter:blur(6px);transform:scale(1.1)}
+.mc-dim{position:absolute;inset:0;background:rgba(8,8,12,.62)}
+.mc-head{position:absolute;left:0;right:0;top:0;display:flex;align-items:center;justify-content:center}
+.mc-foot{position:absolute;left:0;right:0;bottom:0;display:flex;align-items:center;justify-content:center}
+.mc-sep{position:absolute;left:0;right:0;height:2px;background:linear-gradient(#000 0 50%,rgba(255,255,255,.22) 50%)}
+.mc-body{position:absolute;left:0;right:0;overflow-y:auto;overflow-x:hidden;background:rgba(0,0,0,.28);scrollbar-width:thin}
+.mc-col{display:flex;flex-direction:column;align-items:center}
+.mc-t{white-space:pre-wrap;word-break:break-word}
+.mc-btn{position:relative;background:#6d6d6d;border-style:solid;border-color:#000;color:#fff;display:flex;align-items:center;justify-content:center;
+  overflow:hidden;white-space:nowrap;cursor:pointer;flex:none}
+.mc-btn:hover{border-color:#fff}
+.mc-btn.off{background:#2e2e2e;color:#a0a0a0;cursor:default}
+.mc-btn.off:hover{border-color:#000}
+.mc-edit{background:#000;border-style:solid;border-color:#a0a0a0;color:#e0e0e0;outline:none;font:inherit;flex:none}
+.mc-edit:focus{border-color:#fff}
+.mc-check{display:flex;align-items:center;cursor:pointer}
+.mc-box{background:#000;border-style:solid;border-color:#a0a0a0;display:flex;align-items:center;justify-content:center;flex:none;color:#fff}
+.mc-check:hover .mc-box{border-color:#fff}
+.mc-slider{position:relative;flex:none;background:#2b2b2b;border-style:solid;border-color:#000}
+.mc-slider .knob{position:absolute;top:0;bottom:0;background:#8a8a8a;border-style:solid;border-color:#000;box-sizing:border-box}
+.mc-slider:hover .knob{border-color:#fff}
+.mc-slider input{position:absolute;inset:0;width:100%;height:100%;opacity:0;cursor:pointer;margin:0}
+.mc-slider .sl{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;pointer-events:none}
+.mc-slot{background:#8b8b8b;border-style:solid;border-color:#373737 #fff #fff #373737;display:flex;align-items:center;justify-content:center;position:relative;flex:none;overflow:hidden}
+.mc-slot img{image-rendering:pixelated;width:100%;height:100%}
+.mc-slot .ph{color:#333;font-weight:700}
+.mc-slot .ct{position:absolute;right:0;bottom:0;color:#fff}
+.mc-tip{position:absolute;z-index:9;pointer-events:none;background:rgba(16,0,16,.94);border-style:solid;border-color:#2c0b69;box-shadow:0 0 0 1px #100010;white-space:pre}
+.mc-closed{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;color:#ddd}
+.mc-wait{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;background:rgba(0,0,0,.6);color:#ddd}
+.mc-tag{position:absolute;right:0;top:0;color:#bbb;opacity:.75}
+/* 流程圖 */
+#flow svg{display:block}
+#flow .node{cursor:pointer}
+#flow .node rect{fill:#232733;stroke:#3a4152;stroke-width:1.5}
+#flow .node:hover rect{stroke:var(--accent2)}
+#flow .node.on rect{stroke:var(--accent);stroke-width:2.5}
+#flow .node.start rect{fill:#24352b}
+#flow text{fill:var(--text);font-size:13px}
+#flow .nid{fill:var(--dim);font-size:11px;font-family:Consolas,monospace}
+#flow .el{fill:var(--dim);font-size:11px}
+#flow .chipt{font-size:11.5px;cursor:pointer}
+#flow .chipt:hover{text-decoration:underline}
+/* JSON */
+pre.json{background:#0f1115;border:1px solid var(--line);border-radius:6px;padding:10px;overflow:auto;font-family:Consolas,monospace;font-size:12.5px;max-height:60vh;white-space:pre}
+/* 對話視窗 */
+#modal{position:fixed;inset:0;background:rgba(0,0,0,.55);display:none;align-items:center;justify-content:center;z-index:40;padding:20px}
+#modal.on{display:flex}
+.mbox{background:var(--panel);border:1px solid var(--line);border-radius:12px;width:min(760px,100%);max-height:90vh;display:flex;flex-direction:column}
+.mbox>.mh{display:flex;align-items:center;padding:12px 16px;border-bottom:1px solid var(--line);font-weight:700;font-size:16px}
+.mbox>.mh .sp{flex:1}
+.mbox>.mb{padding:14px 16px;overflow:auto}
+.mbox>.mf{padding:10px 16px;border-top:1px solid var(--line);display:flex;gap:8px;justify-content:flex-end}
+.plist{display:grid;gap:6px}
+.pitem{display:flex;align-items:center;gap:10px;background:var(--panel2);border:1px solid var(--line);border-radius:8px;padding:8px 10px}
+.pitem.on{border-color:#3d8a55}
+.pitem .tx{flex:1;min-width:0}
+.pitem .tx small{color:var(--dim)}
+.tpl{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:8px;margin:8px 0 16px}
+.tpl button{text-align:left;background:var(--panel2);border:1px solid var(--line);border-radius:8px;padding:10px}
+.tpl button:hover{border-color:var(--accent)}
+.tpl b{display:block;margin-bottom:3px}
+.tpl span{color:var(--dim);font-size:12px}
+.typepick{display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:8px}
+.typepick button{text-align:left;background:var(--panel2);border:1px solid var(--line);border-radius:8px;padding:10px;display:flex;gap:10px;align-items:flex-start}
+.typepick button:hover{border-color:var(--accent)}
+.typepick .ic{font-size:20px;width:26px;text-align:center}
+.typepick b{display:block}
+.typepick span{color:var(--dim);font-size:12px}
+.helpdoc h3{margin:16px 0 6px;color:var(--accent)}
+.helpdoc p,.helpdoc li{color:#cfd3dc}
+.helpdoc code{background:#0f1115;border:1px solid var(--line);border-radius:4px;padding:0 4px;font-family:Consolas,monospace;font-size:12.5px}
+.ftree{font-family:Consolas,monospace;font-size:12.5px;background:#0f1115;border:1px solid var(--line);border-radius:6px;padding:8px 10px;max-height:220px;overflow:auto;white-space:pre}
+#toast{position:fixed;left:50%;bottom:24px;transform:translateX(-50%);background:#2b5a3a;color:#fff;border-radius:8px;padding:8px 16px;box-shadow:0 6px 20px rgba(0,0,0,.4);opacity:0;transition:opacity .2s;pointer-events:none;z-index:60}
+#toast.on{opacity:1}
+#toast.err{background:#6b2b2b}
+@media (max-width:1100px){
+  #main{grid-template-columns:220px 1fr;grid-template-rows:1fr 46vh}
+  #right{grid-column:1/3;border-top:1px solid var(--line)}
+}
+</style>
+</head>
+<body>
+<div id="app">
+  <header id="top">
+    <div class="logo">Dialog <b>工坊</b> <span class="badge o" id="ver" style="vertical-align:middle"></span></div>
+    <div class="pname" id="pname"></div>
+    <button class="tb" id="bUndo" title="復原（Ctrl+Z）">↶</button>
+    <button class="tb" id="bRedo" title="重做（Ctrl+Y）">↷</button>
+    <button class="tb" id="bProj">📁 專案</button>
+    <button class="tb" id="bSave" title="下載專案檔（Ctrl+S）">💾 儲存成檔案</button>
+    <button class="tb" id="bImport">📥 匯入對話框 JSON</button>
+    <button class="tb pri" id="bExport">📦 匯出資料包</button>
+    <button class="tb" id="bFeedback" style="display:none">💬 回報問題</button>
+    <button class="tb" id="bHelp">？ 說明</button>
+    <select class="tb" id="bLang" title="Language" style="width:auto"></select>
+  </header>
+  <div id="main">
+    <aside id="side">
+      <div class="proj">
+        <label>專案名稱<input type="text" id="pName"></label>
+        <label>命名空間<input type="text" id="pNs" class="mono" placeholder="mymap"></label>
+      </div>
+      <div class="sec-h">對話框 <span class="sp"></span><span id="foldBtns"></span><button class="ib" id="bAddDlg" title="新增對話框">＋ 新增</button></div>
+      <div id="dlist" class="scroll"></div>
+      <div class="side-foot">
+        <button class="ib" id="bDupDlg">⧉ 複製</button>
+        <button class="ib" id="bUpDlg">↑</button>
+        <button class="ib" id="bDnDlg">↓</button>
+        <button class="ib del" id="bDelDlg">✕ 刪除</button>
+      </div>
+    </aside>
+    <section id="mid">
+      <div class="tabs">
+        <button class="tab on" data-tab="edit">✎ 編輯</button>
+        <button class="tab" data-tab="flow">⇄ 流程圖</button>
+        <button class="tab" data-tab="json">{ } JSON</button>
+        <button class="tab" data-tab="proj">⚙ 專案設定</button>
+      </div>
+      <div id="midBody" class="scroll"></div>
+    </section>
+    <section id="right">
+      <div class="pv-bar">
+        <button class="ib" id="pvBack" title="回到上一個對話框">← 上一個</button>
+        <button class="ib" id="pvReset" title="重新打開編輯中的對話框">⟲ 重來</button>
+        <button class="ib" id="pvEsc" title="模擬按下 Esc">Esc</button>
+        <span class="crumb" id="pvCrumb"></span>
+        <select id="pvSize" title="模擬的螢幕大小（GUI 像素）">
+          <option value="480x270">1080p・介面 4（480×270）</option>
+          <option value="640x360">1080p・介面 3（640×360）</option>
+          <option value="427x240">720p・介面 3（427×240）</option>
+          <option value="683x384">1366×768・介面 2</option>
+          <option value="960x540">1080p・介面 2（960×540）</option>
+        </select>
+      </div>
+      <div id="pvWrap"><div id="pvBox"><div id="scr"></div></div></div>
+      <div id="pvLog">
+        <div class="sec-h">預覽紀錄（按下按鈕後送出的指令） <span class="sp"></span><button class="ib" id="pvClear">清除</button></div>
+        <div class="lg" id="lg"></div>
+      </div>
+    </section>
+  </div>
+</div>
+<div id="pop"></div>
+<div id="modal"></div>
+<div id="toast"></div>
+<input type="file" id="fileProj" accept=".json,application/json" hidden>
+<input type="file" id="fileDlg" accept=".json,application/json" multiple hidden>
+<input type="file" id="filePack" accept=".zip,application/zip" hidden>
+<input type="file" id="fileDir" webkitdirectory directory multiple hidden>
+
+<script>
+/* ---------- 介面語言（繁中是原文；簡中由繁中自動轉出；英文另外翻譯） ---------- */
+const LANGS = { 'zh-TW': '繁體中文', 'zh-CN': '简体中文', 'en': 'English' };
+const LANG = (() => {
+  let l = new URLSearchParams(location.search).get('lang') || localStorage.getItem('dlgworkshop.lang');
+  if (!l) { const n = (navigator.language || '').toLowerCase(); l = n.startsWith('zh') ? (/tw|hk|mo|hant/.test(n) ? 'zh-TW' : 'zh-CN') : 'en'; }
+  return LANGS[l] ? l : 'en';
+})();
+const I18N = {"en":{"粗體":"Bold","斜體":"Italic","底線":"Underline","刪除線":"Strikethrough","亂碼（obfuscated）":"Obfuscated","多按鈕選單":"Multi-button menu","多顆按鈕排成格狀，主選單、商店、設定都用它。":"A grid of buttons — the go-to for main menus, shops and settings.","通知":"Notice","一段訊息＋底部一顆按鈕。":"A message plus one button at the bottom.","確認":"Confirmation","底部「是／否」兩顆按鈕。":"Yes / No buttons at the bottom.","對話框清單":"Dialog list","自動列出其他對話框的按鈕。":"Automatically lists buttons for other dialogs.","伺服器連結":"Server links","顯示伺服器設定的連結（多人伺服器用）。":"Shows the links set by the server (multiplayer).","不做事（只關閉）":"Do nothing (just close)","開啟另一個對話框":"Open another dialog","執行指令（自動產生資料包，免 OP）":"Run commands (auto datapack, no OP needed)","設定 trigger 計分板":"Set a trigger scoreboard","把輸入欄位的值帶進指令":"Send input values into a command","直接執行指令（需權限）":"Run a command directly (needs permission)","把指令填進聊天欄":"Put a command in the chat bar","開啟網址":"Open a URL","複製文字到剪貼簿":"Copy text to clipboard","自訂封包（伺服器外掛用）":"Custom packet (for server plugins)","自訂封包＋輸入值（外掛用）":"Custom packet + inputs (plugins)","（無）":"(none)","執行指令":"Run command","填入聊天欄":"Put in chat bar","複製到剪貼簿":"Copy to clipboard","開啟對話框（ID）":"Open dialog (ID)","按鈕":"Button","新的對話框":"New dialog","確定":"OK","取消":"Cancel","好":"OK","我的地圖":"My Map","標籤":"Label","輸入文字":"Type here","勾選":"Toggle","選項":"Option","選項 A":"Option A","選項 B":"Option B","數值":"Value","文字輸入":"Text input","勾選框":"Checkbox","選項切換":"Option cycler","數值滑桿":"Number slider","瀏覽器儲存空間不足，請下載專案檔備份":"Browser storage is full — please download a project file as a backup","命名空間「{0}」只能用小寫英文、數字、_ - .":"Namespace \"{0}\" may only use lowercase letters, numbers, _ - .","ID「{0}」只能用小寫英文、數字、_ - . /":"ID \"{0}\" may only use lowercase letters, numbers, _ - . /","ID「{0}」重複了":"ID \"{0}\" is used twice","「暫停遊戲」開著時，按鈕後的行為不能是「保持開啟」（遊戲會一直停住，Minecraft 不接受）":"With \"Pause game\" on, the after-click behaviour can't be \"Stay open\" (the game would stay paused forever; Minecraft rejects it)","多按鈕選單至少要有一顆按鈕":"A multi-button menu needs at least one button","對話框清單至少要列一個對話框（或填標籤）":"A dialog list needs at least one dialog (or a tag)","輸入欄位的鍵名「{0}」只能用英文、數字、底線":"Input key \"{0}\" may only use letters, numbers and underscores","輸入欄位的鍵名「{0}」重複":"Input key \"{0}\" is used twice","選項切換「{0}」至少要一個選項":"Option cycler \"{0}\" needs at least one option","選項切換「{0}」只能有一個預設選項":"Option cycler \"{0}\" can only have one default option","數值滑桿「{0}」的間隔要大於 0":"Number slider \"{0}\": the step must be greater than 0","數值滑桿「{0}」的初始值不在範圍內":"Number slider \"{0}\": the initial value is out of range","文字輸入「{0}」的預設文字超過最大長度":"Text input \"{0}\": the default text is longer than the max length","物品「{0}」的元件（components）不是合法 JSON":"Item \"{0}\": components are not valid JSON","按鈕「{0}」":"Button \"{0}\"","（無字）":"(no text)","{0}寬度要在 1～1024":"{0}: width must be 1–1024","{0}沒有選要開的對話框":"{0}: no dialog selected to open","{0}的指令是空的":"{0}: the command list is empty","{0}的「{1}」需要權限，玩家會先看到確認畫面；改用「執行指令（自動產生資料包）」就不會":"{0}: \"{1}\" needs permission, so players see a confirmation screen first. Use \"Run commands (auto datapack)\" to avoid it","{0}會帶入輸入值，但這個對話框沒有輸入欄位":"{0} sends input values, but this dialog has no inputs","{0}用到不存在的鍵名 $({1})":"{0} uses a key that doesn't exist: $({1})","{0}的「{1}」需要權限，玩家會先看到確認畫面":"{0}: \"{1}\" needs permission, so players see a confirmation screen first","{0}的計分板名稱不合法":"{0}: invalid scoreboard name","[分數 {0}:{1}]":"[score {0}:{1}]","[按鍵 {0}]":"[key {0}]","[圖示]":"[icon]","是":"Yes","否":"No","・{0} 個對話框":" · {0} dialogs","還沒有對話框":"No dialogs yet","＋ 新增第一個":"+ Add the first one","（無標題）":"(untitled)","起始對話框":"Start dialog","有錯誤":"Has errors","（不開啟）":"(don't open)","＋ 加入文字":"+ Add text","同一行裡加入不同顏色／樣式的另一段字":"Add another piece of text with a different colour/style on the same line","＋ 不同樣式的一段":"+ Differently styled piece","輸入文字…（Enter 換行）":"Type text… (Enter for a new line)","顏色":"Colour","進階：翻譯鍵、滑鼠提示、點擊動作":"Advanced: translation key, hover text, click action","刪除這段":"Delete this piece","翻譯鍵":"Translate key","例如 mymap.menu.title（留空＝不用）":"e.g. mymap.menu.title (leave empty to skip)","填了之後，上面的文字會變成 fallback（找不到翻譯時顯示）。":"When set, the text above becomes the fallback (shown when no translation is found).","滑鼠提示":"Hover text","游標停在字上時顯示":"Shown when the cursor is over the text","點擊文字":"Click text","指令／網址／內容":"Command / URL / content","其他屬性":"Other props","這段是分數／選擇器／圖示等特殊元件，內容在這裡編輯。":"This is a special component (score / selector / icon…); edit its content here.","進階：JSON 物件，例如 <code>{\"font\":\"minecraft:uniform\"}</code>、翻譯參數 <code>{\"with\":[\"5\"]}</code>。":"Advanced: a JSON object, e.g. <code>{\"font\":\"minecraft:uniform\"}</code> or translation args <code>{\"with\":[\"5\"]}</code>.","特殊元件，內容在「⋯ → 其他屬性」編輯":"Special component — edit it under \"⋯ → Other props\"","Minecraft 16 色":"Minecraft's 16 colours","請輸入 #RRGGBB":"Please enter #RRGGBB","套用":"Apply","↺ 預設顏色（白）":"↺ Default colour (white)","收合":"Collapse","上移":"Move up","下移":"Move down","複製":"Duplicate","刪除":"Delete","按下後":"On click","插入 $({0})":"Insert $({0})","（這個對話框還沒有輸入欄位）":"(this dialog has no inputs yet)","按下後照「按鈕後的行為」處理（預設是關閉對話框）。":"Follows the dialog's \"After click\" setting (closes it by default).","（外部 ID…）":"(external ID…)","開啟":"Open","外部 ID":"External ID","例如 minecraft:quick_actions 或 other:menu":"e.g. minecraft:quick_actions or other:menu","直接在玩家畫面上換成那個對話框，不經過伺服器、不需要權限。":"Swaps straight to that dialog on the player's screen — no server round trip, no permission needed.","指令":"Commands","每行一條，以玩家身份、在玩家位置執行，例如：\ngive @s diamond 1\nplaysound minecraft:entity.player.levelup master @s\ntp @s 0 100 0":"One per line, run as the player at the player's position, e.g.:\ngive @s diamond 1\nplaysound minecraft:entity.player.levelup master @s\ntp @s 0 100 0","玩家按下時會送出 <code>/trigger {0} set {1}</code>，資料包收到後執行這些指令。不需要 OP，也不會跳確認畫面。":"Clicking sends <code>/trigger {0} set {1}</code>; the datapack picks it up and runs these commands. No OP needed and no confirmation screen.","之後開啟":"Then open","執行完再開另一個對話框（例如買完東西回到商店）。":"Open another dialog afterwards (e.g. back to the shop after buying).","計分板":"Scoreboard","設成":"Set to","送出 <code>/trigger {0} set {1}</code>，你的資料包自己偵測分數。計分板要是 <code>trigger</code> 類型且已 <code>enable</code>（可在「專案設定」的額外計分板自動建立）。":"Sends <code>/trigger {0} set {1}</code>; your own datapack reads the score. The objective must be a <code>trigger</code> objective and <code>enable</code>d (the extra objectives in \"Project\" can set that up for you).","/say 你好":"/say hello","只有 trigger、msg 這類一般玩家能用的指令不會跳確認畫面；其他指令玩家要有權限並按確認。":"Only commands any player may use (trigger, msg…) skip the confirmation screen; for anything else the player needs permission and has to confirm.","填入":"Text","關掉對話框、打開聊天欄並填入文字，讓玩家自己修改後送出。":"Closes the dialog and opens chat with this text filled in, so the player can edit it and send.","網址":"URL","玩家會先看到「確定要開啟這個連結嗎」的畫面。":"Players first see the usual \"Are you sure you want to open this link?\" screen.","內容":"Content","要複製的文字":"Text to copy","（選填）NBT／JSON":"(optional) NBT / JSON","送給伺服器的自訂封包，原版不會處理，給 Paper／Fabric 外掛用。":"A custom packet sent to the server. Vanilla ignores it — it's for Paper / Fabric plugins.","指令樣板":"Command template","用 <code>$(鍵名)</code> 代入輸入欄位的值。":"Use <code>$(key)</code> to insert an input's value.","插入鍵名":"Insert key","快速套用":"Quick fill","要免權限只能送 <code>/trigger 計分板 set 整數</code>：選項的 ID、勾選框的真／假值、數值滑桿都可以設成整數。自由文字沒辦法免權限送進資料包。":"Without permission you can only send <code>/trigger objective set integer</code>: give option IDs, checkbox values and sliders integer values. Free text can't reach a datapack without permission.","附加資料":"Additions","（選填）JSON 物件":"(optional) JSON object","所有輸入欄位的值會一起送給伺服器外掛。":"All input values are sent to the server plugin together.","文字":"Text","按鈕上的字":"Text on the button","＋ 加入提示":"+ Add tooltip","寬度":"Width","GUI 像素，原版預設 150，1～1024":"GUI pixels, vanilla default 150, 1–1024","內文…（Enter 換行）":"Body text… (Enter for a new line)","超過就換行，預設 200":"Wraps past this width, default 200","物品 ID":"Item ID","數量":"Count","說明文字":"Description","＋ 加入說明（顯示在物品右邊）":"+ Add description (shown right of the item)","說明寬度":"Description width","物品元件":"Components","（選填）JSON，例如 {\"minecraft:enchantment_glint_override\":true}":"(optional) JSON, e.g. {\"minecraft:enchantment_glint_override\":true}","格子寬":"Slot width","格子高":"Slot height","顯示數量／耐久":"Show count / durability","游標停留顯示物品資訊":"Show item tooltip on hover","鍵名":"Key","按鈕用 <code>$(鍵名)</code> 讀取這個值":"Buttons read this value with <code>$(key)</code>","顯示標籤":"Show label","預設文字":"Default text","最大長度":"Max length","多行輸入":"Multi-line","最多行數":"Max lines","不限":"no limit","高度":"Height","自動":"auto","預設勾選":"Checked by default","勾選時的值":"Value when checked","沒勾時的值":"Value when unchecked","帶進指令時代入的文字。要送 trigger 就設成 1 / 0。":"Text inserted into commands. Use 1 / 0 if you send it via trigger.","＋ 顯示文字（不填就顯示 ID）":"+ Display text (shows the ID if empty)","設為預設":"Set as default","新選項":"New option","＋ 選項":"+ Option","ID 就是代入指令的值；★ 是開啟時的預設選項。":"The ID is the value inserted into commands; ★ marks the default option.","最小":"Min","最大":"Max","間隔":"Step","連續":"continuous","初始值":"Initial","中間":"middle","標籤格式":"Label format","options.generic_value（「標籤: 值」）":"options.generic_value (\"Label: value\")","翻譯鍵，%s 依序是標籤與數值；通常留空。":"A translation key; %s is the label, then the value. Usually leave empty.","從左邊選一個對話框，或新增一個開始。":"Pick a dialog on the left, or add one to get started.","＋ 新增對話框":"+ Add dialog","基本設定":"Basics","檔案：<code>data/{0}/dialog/{1}.json</code>":"File: <code>data/{0}/dialog/{1}.json</code>","類型":"Type","備註":"Note","只給自己看，不會匯出":"Just for you, not exported","行為":"Behaviour","可以按 Esc 關閉":"Can close with Esc","單人時暫停遊戲":"Pause the game in singleplayer","起始對話框（流程圖的起點）":"Start dialog (where the flow map begins)","按鈕後":"After click","關閉對話框":"Close the dialog","保持開啟":"Stay open","顯示「等待回應」直到伺服器開新的":"Show \"Waiting for response\" until the server opens a new one","用資料包開下一個對話框時選「等待回應」，畫面不會閃一下回到遊戲。":"Pick \"Waiting for response\" when a datapack opens the next dialog, so the screen doesn't flash back to the game.","加到選單":"Add to menus","Esc 暫停畫面的按鈕":"Button on the Esc pause screen","快速動作鍵（預設 G）":"Quick Actions key (G by default)","會寫進 <code>minecraft:pause_screen_additions</code>／<code>quick_actions</code> 標籤。":"Written into the <code>minecraft:pause_screen_additions</code> / <code>quick_actions</code> tags.","標題":"Title","對話框頂端的標題":"Title at the top of the dialog","外部標題":"External title","＋ 外部標題（在別的清單裡當按鈕文字時用）":"+ External title (used as the button text in other lists)","內文":"Body","標題下面顯示的文字或物品，可以放好幾段。":"Text or items shown below the title; add as many as you like.","（空的文字）":"(empty text)","＋ 文字段落":"+ Text","＋ 物品":"+ Item","{0} 段":"{0} items","輸入欄位":"Inputs","讓玩家填寫、勾選、選擇、拉滑桿；值透過「把輸入欄位的值帶進指令」的按鈕送出。":"Let players type, tick, choose and slide; values are sent by a \"Send input values into a command\" button.","＋ ":"+ ","{0} 個":"{0} inputs","關閉":"Close","底部按鈕：":"Bottom button: ","按 Esc 關閉時也會執行這顆按鈕的動作。":"Pressing Esc also runs this button's action.","底部的單一按鈕。":"The single button at the bottom.","✔ 是：":"✔ Yes: ","✖ 否：":"✖ No: ","欄數":"Columns","每列放幾顆按鈕":"Buttons per row","＋ 按鈕":"+ Button","新按鈕":"New button","＋ 開啟對話框的按鈕":"+ Button that opens a dialog","前往…":"Go to…","＋ 執行指令的按鈕":"+ Button that runs commands","執行":"Run","底部放一顆離開按鈕":"Add an exit button at the bottom","列出":"Lists","＋ 對話框":"+ Dialog","每個對話框變成一顆按鈕，文字用它的外部標題（沒有就用標題）。":"Each dialog becomes a button labelled with its external title (or its title).","或用標籤":"Or a tag","例如 mymap:menus（填了就不用上面的清單）":"e.g. mymap:menus (overrides the list above)","按鈕寬度":"Button width","連結內容由伺服器的 server.properties／外掛提供，這裡只設定版面。":"The links come from the server's server.properties / plugins; this only sets the layout.","{0} 顆":"{0} buttons","還沒有對話框。":"No dialogs yet.","━ 直接開啟":"━ Opens directly","　":"  ","┅ 執行指令後開啟":"┅ Opens after commands","━ 清單":"━ List","　點一下選取、按兩下編輯。":"  Click to select, double-click to edit.","已複製":"Copied","複製失敗，請手動選取":"Copy failed — please select it manually","沒有選取對話框。":"No dialog selected.","貼上一個 dialog JSON，按「取代」載入到這個對話框":"Paste a dialog JSON and press \"Replace\" to load it into this dialog","複製 JSON":"Copy JSON","複製「內嵌」指令":"Copy inline command","複製 /dialog show @s {0}:{1}":"Copy /dialog show @s {0}:{1}","下載這個檔":"Download this file","放在 <code>data/{0}/dialog/{1}.json</code>。「內嵌」指令不用放檔案就能直接在聊天欄或指令方塊測試（但裡面開啟其他對話框的按鈕仍需要資料包）。":"Goes in <code>data/{0}/dialog/{1}.json</code>. The inline command works straight from chat or a command block without any files (buttons that open other dialogs still need the datapack).","用 JSON 取代這個對話框":"Replace this dialog with JSON","已載入":"Loaded","JSON 格式錯誤：":"Invalid JSON: ","取代":"Replace","26.3（121）":"26.3 (121)","1.21.9～1.21.10（88）":"1.21.9–1.21.10 (88)","1.21.7～1.21.8（81）":"1.21.7–1.21.8 (81)","1.21.6（80）":"1.21.6 (80)","自訂…":"Custom…","資料包":"Datapack","名稱":"Name","命名空間":"Namespace","所有對話框的 ID 前綴，例如 <code>mymap:main_menu</code>。":"Prefix for every dialog ID, e.g. <code>mymap:main_menu</code>.","說明":"Description","顯示在資料包清單裡":"Shown in the datapack list","遊戲版本":"Game version","最低格式":"Min format","最高格式":"Max format","對話框從 1.21.6 開始才有。格式號碼對不上時遊戲只會顯示「為舊版／新版製作」，仍可載入。":"Dialogs exist since 1.21.6. If the format number doesn't match, the game only says \"made for an older/newer version\" and still loads it.","指令按鈕（trigger）":"Command buttons (trigger)","「執行指令」按鈕共用這個 trigger 計分板，每顆按鈕一個編號。":"All \"Run commands\" buttons share this trigger objective; each button gets its own number.","額外計分板":"Extra objectives","例如 mymap.diff mymap.vol（空白分隔）":"e.g. mymap.diff mymap.vol (space separated)","會自動建立成 trigger 並每 tick 對所有人 enable，給「設定 trigger」或「帶入輸入值」的按鈕用；偵測分數的邏輯要你自己寫。":"Created as trigger objectives and enabled for everyone every tick, for \"Set a trigger\" or \"Send input values\" buttons. You write the logic that reads the scores.","產生開啟函數（function ns:open/<ID>）":"Generate open functions (function ns:open/<ID>)","目前的指令按鈕：<br>":"Current command buttons:<br>","#{0}　{1}　「{2}」":"#{0}  {1}  \"{2}\"","目前沒有「執行指令」按鈕。":"No \"Run commands\" buttons yet.","預覽":"Preview","從 mcasset.cloud 載入原版物品圖示（離線時顯示代號）":"Load vanilla item icons from mcasset.cloud (shows a short code when offline)","開啟對話框 {0}":"Open dialog {0}","開啟網址 ":"Open URL ","填入聊天欄 ":"Put in chat bar ","複製 ":"Copy ","（離開）":"(exit)","/trigger {0} set {1}　→ 資料包執行：":"/trigger {0} set {1}  → the datapack runs:","聊天欄填入：{0}":"Chat bar filled with: {0}","開啟網址：{0}":"Open URL: {0}","複製到剪貼簿：{0}":"Copied to clipboard: {0}","自訂封包 {0} {1}":"Custom packet {0} {1}","（沒有對話框）":"(no dialog)","對話框已關閉，回到遊戲":"Dialog closed — back to the game","重新開啟":"Reopen","⏸ 暫停":"⏸ Paused","（標籤 #{0} 的內容只在遊戲裡看得到）":"(the contents of tag #{0} only show up in-game)","伺服器網站":"Server website","回報問題":"Report a bug","實際連結由伺服器提供":"Actual links come from the server","（伺服器連結）":"(server link)","等待伺服器回應…":"Waiting for the server…","（這個對話框不能用 Esc 關閉）":"(this dialog can't be closed with Esc)","{0}（Dialog 工坊產生）":"{0} (made with Dialog Workshop)","# 開啟「{0}」\ndialog show @s {1}\n":"# Opens \"{0}\"\ndialog show @s {1}\n","# Dialog 工坊：建立按鈕用的 trigger 計分板\n":"# Dialog Workshop: trigger objectives for the buttons\n","# 每 tick 讓所有人都能使用 trigger\n":"# Let everyone use the triggers, every tick\n","# 有人按了「執行指令」按鈕\nexecute as @a[scores={{0}=1..}] at @s run function {1}:dialog/handle\n":"# Someone clicked a \"Run commands\" button\nexecute as @a[scores={{0}=1..}] at @s run function {1}:dialog/handle\n","# 依按鈕編號分派（以按下的玩家身份執行）\nscoreboard players operation #btn {0} = @s {1}\nscoreboard players set @s {2} 0\n":"# Dispatch by button number (runs as the player who clicked)\nscoreboard players operation #btn {0} = @s {1}\nscoreboard players set @s {2} 0\n","# {0}「{1}」\n":"# {0} \"{1}\"\n","{0} — 由 Dialog 工坊產生的資料包\n\n安裝\n1. 把這個 zip 放進存檔的 datapacks 資料夾（或在建立世界時加入）。\n2. 「離開世界再重新進入」。對話框是在進入世界時登錄的，只打 /reload 不會出現新的對話框。\n3. 用 /dialog show @s {1}:<ID>{2} 打開。\n\n對話框\n":"{0} — datapack made with Dialog Workshop\n\nInstall\n1. Put this zip in your world's datapacks folder (or add it when creating the world).\n2. Leave the world and join it again. Dialogs are registered when the world loads, so /reload alone won't show new dialogs.\n3. Open one with /dialog show @s {1}:<ID>{2}.\n\nDialogs\n"," 或 /function {0}:open/<ID>":" or /function {0}:open/<ID>","  {0}:{1}　{2}　{3}\n":"  {0}:{1}  {2}  {3}\n","\n「執行指令」按鈕（trigger 計分板 {0}）\n":"\n\"Run commands\" buttons (trigger objective {0})\n","  #{0}　{1}「{2}」→ function {3}:dialog/btn/{4}\n":"  #{0}  {1} \"{2}\" → function {3}:dialog/btn/{4}\n","\n按鈕的指令在 data/{0}/function/dialog/btn/ 裡，可以直接修改；重新從工坊匯出會覆蓋。\n":"\nThe button commands live in data/{0}/function/dialog/btn/ and can be edited there; exporting again from the workshop overwrites them.\n","📦 匯出資料包":"📦 Export datapack","有 {0} 個錯誤，匯出後遊戲可能載入失敗：":"{0} error(s) — the game may fail to load the pack:","：":": ","✔ 檢查通過。":"✔ All checks passed.","安裝方式":"How to install","把 zip 放進存檔的 ":"Put the zip in your world's "," 資料夾。":" folder.","離開世界再重新進入":"Leave the world and join again","（新的對話框只在進入世界時登錄，":" (new dialogs only register when the world loads; "," 不夠）。":" isn't enough).","用 ":"Open it with "," 打開。":".","{0}_dialogs_單檔.json":"{0}_dialogs_all.json","只下載全部 JSON":"Download all JSON only","已下載資料包":"Datapack downloaded","⬇ 下載 .zip":"⬇ Download .zip","未命名":"Untitled","📁 專案":"📁 Projects","新專案":"New project","已建立「":"Created \"","」":"\"","存在這個瀏覽器的專案":"Projects saved in this browser","📂 開啟專案檔…":"📂 Open project file…","編輯中":"editing","{0} 個對話框・{1}":"{0} dialogs · {1}","複製一份":"Make a copy","（副本）":" (copy)","下載專案檔":"Download project file","刪除專案「{0}」？這個動作不能復原（建議先下載專案檔備份）。":"Delete project \"{0}\"? This can't be undone (download a project file first as a backup).","（沒有）":"(none)","專案自動存在這個瀏覽器（清除網站資料就會不見）。要換電腦或備份，請用「💾 儲存成檔案」下載 .dlgproj.json。":"Projects are saved in this browser automatically (clearing site data deletes them). To back up or move to another computer, use \"💾 Save as file\" to download a .dlgproj.json.","之後也可以在「基本設定」換類型，內文和輸入欄位會保留。":"You can change the type later under \"Basics\"; body and inputs are kept.","選一個吧！":"Pick one!","選項一":"Option 1","選項二":"Option 2","這是一則通知。":"This is a notice.","確定要這樣做嗎？":"Are you sure?","返回":"Back","貼上 dialog JSON（單一個，或 {\"ns:id\": {...}, ...} 多個）":"Paste dialog JSON (a single one, or several as {\"ns:id\": {...}, ...})","新對話框的 ID（單一個時）":"ID for the new dialog (single import)","📥 匯入對話框":"📥 Import dialogs","可以把現有資料包 data/<命名空間>/dialog/ 裡的 .json 一次選很多個匯入（檔名就是 ID），或直接貼上 JSON。匯入後會自動把互相開啟的按鈕接起來。":"Pick many .json files from an existing datapack's data/<namespace>/dialog/ at once (the file name becomes the ID), or paste JSON. Buttons that open each other are linked up automatically.","選擇 .json 檔案…":"Choose .json files…","匯入貼上的 JSON":"Import pasted JSON","已匯入 {0} 個對話框":"Imported {0} dialog(s)","？ 說明":"? Help","\n<p>Dialog 工坊是給地圖作者用的 Minecraft <b>對話框（dialog）</b>生成器，支援 1.21.6 以後的版本（含 26.x）。左邊管理對話框、中間編輯、右邊即時預覽，而且預覽裡的按鈕真的可以按：開啟其他對話框、執行的指令會列在下面的紀錄。</p>\n<h3>基本流程</h3>\n<ol>\n<li>「📁 專案」→ 選範本或空白專案。專案會自動存在瀏覽器裡。</li>\n<li>左邊「＋ 新增」加對話框，最常用的是<b>多按鈕選單</b>。</li>\n<li>每顆按鈕選「按下後」要做什麼：開另一個對話框、執行指令、送出輸入值…</li>\n<li>「📦 匯出資料包」下載 zip，放進存檔的 datapacks，<b>離開世界再重新進入</b>。</li>\n</ol>\n<h3>為什麼推薦「執行指令（自動產生資料包）」</h3>\n<p>對話框按鈕直接執行需要權限的指令（give、tp、function…）時，玩家會先看到一個確認畫面，沒有權限的玩家根本執行不了。這個選項改成讓按鈕送出 <code>/trigger 計分板 set 編號</code>（任何玩家都能用），工坊產生的資料包每 tick 偵測，再以那位玩家的身份執行你寫的指令。所以玩家不需要 OP，也不會看到確認畫面。編號固定不變，重新匯出也一樣。</p>\n<h3>輸入欄位</h3>\n<p>文字輸入、勾選框、選項切換、數值滑桿。用「把輸入欄位的值帶進指令」的按鈕，在樣板裡寫 <code>$(鍵名)</code> 代入。要免權限傳進資料包，只能用 <code>/trigger 計分板 set $(鍵名)</code>，而且值要是整數（選項 ID、勾選的真／假值設成數字）。</p>\n<h3>文字樣式</h3>\n<p>每段文字可以設顏色、粗體、斜體、底線、刪除線、亂碼；按「⋯」可以加翻譯鍵（多語系地圖）、滑鼠提示、點擊動作。「＋ 不同樣式的一段」可以在同一行混合不同顏色。</p>\n<h3>小技巧</h3>\n<ul>\n<li>流程圖分頁看整個選單怎麼串接，點節點直接跳過去編輯。</li>\n<li>要用資料包接著開下一個對話框時，「按鈕後」選「等待回應」，畫面不會閃回遊戲。</li>\n<li>JSON 分頁可以複製「內嵌」指令，不放檔案就能在遊戲裡貼上測試。</li>\n<li>Ctrl+Z／Ctrl+Y 復原重做（焦點不在輸入框時），Ctrl+S 下載專案檔。</li>\n<li>預覽的字型、換行位置是近似值，實際以遊戲內為準。</li>\n</ul>":"\n<p>Dialog Workshop is a Minecraft <b>dialog</b> maker for map makers, for 1.21.6 and later (including 26.x). Manage dialogs on the left, edit in the middle and preview on the right — and the preview buttons really work: they open other dialogs, and the commands they'd run show up in the log below.</p>\n<h3>The basics</h3>\n<ol>\n<li>\"📁 Projects\" → pick a template or a blank project. Projects save themselves in your browser.</li>\n<li>Use \"+ Add\" on the left to add dialogs. The one you'll use most is the <b>multi-button menu</b>.</li>\n<li>For each button, choose what happens \"On click\": open another dialog, run commands, send inputs…</li>\n<li>\"📦 Export datapack\" downloads a zip. Put it in your world's datapacks folder, then <b>leave the world and join again</b>.</li>\n</ol>\n<h3>Why \"Run commands (auto datapack)\" is recommended</h3>\n<p>When a dialog button runs a command that needs permission (give, tp, function…), players first get a confirmation screen, and players without permission can't run it at all. This option makes the button send <code>/trigger objective set number</code> instead (any player can do that). The generated datapack checks it every tick and runs your commands as that player — no OP and no confirmation screen. Button numbers never change, even when you export again.</p>\n<h3>Inputs</h3>\n<p>Text input, checkbox, option cycler and number slider. Use a \"Send input values into a command\" button and write <code>$(key)</code> in the template. To get a value into a datapack without permission, the only way is <code>/trigger objective set $(key)</code>, and the value has to be an integer (make option IDs and checkbox values numbers).</p>\n<h3>Text styles</h3>\n<p>Every piece of text can have a colour, bold, italic, underline, strikethrough or obfuscated. Press \"⋯\" to add a translation key (for multi-language maps), hover text or a click action. \"+ Differently styled piece\" mixes colours on one line.</p>\n<h3>Tips</h3>\n<ul>\n<li>The flow map tab shows how your menus link together; click a box to jump to it.</li>\n<li>When a datapack opens the next dialog, set \"After click\" to \"Waiting for response\" so the screen doesn't flash back to the game.</li>\n<li>The JSON tab can copy an inline command you can paste in-game to test without any files.</li>\n<li>Ctrl+Z / Ctrl+Y to undo/redo (when no text box is focused), Ctrl+S to download the project file.</li>\n<li>Fonts and line breaks in the preview are approximate; the game has the final say.</li>\n</ul>","主選單":"Main menu","歡迎！從這裡開始做你的對話框。":"Welcome! Start building your dialogs here.","按鈕一":"Button 1","按鈕二":"Button 2","示範：冒險地圖選單":"Demo: adventure map menus","冒險者選單":"Adventurer's Menu","歡迎來到 ":"Welcome to the ","浮空群島":"Floating Isles","！\n":"!\n","按 G 也能隨時打開這個選單。":"Press G to open this menu any time.","▶ 開始冒險":"▶ Start adventure","傳送到起點":"Teleport to the start","tp @s 0 100 0\ntitle @s title {\"text\":\"冒險開始！\",\"color\":\"gold\"}\nplaysound minecraft:ui.toast.challenge_complete master @s":"tp @s 0 100 0\ntitle @s title {\"text\":\"Adventure begins!\",\"color\":\"gold\"}\nplaysound minecraft:ui.toast.challenge_complete master @s","⚙ 設定":"⚙ Settings","📖 冒險手冊":"📖 Adventurer's guide","💰 商店":"💰 Shop","放棄進度…":"Give up progress…","設定":"Settings","調整之後按「套用難度」。":"Change things, then press \"Apply difficulty\".","難度":"Difficulty","簡單":"Easy","普通":"Normal","困難":"Hard","顯示粒子特效":"Show particles","音量":"Volume","隊伍名稱":"Team name","冒險者":"Adventurer","套用難度":"Apply difficulty","送出 /trigger demo.diff set 1～3":"Sends /trigger demo.diff set 1–3","冒險手冊":"Adventurer's Guide","第一章　":"Chapter 1  ","群島的傳說\n":"Legend of the Isles\n","很久以前，天空中漂浮著七座島嶼…":"Long ago, seven islands drifted in the sky…","指南針會指向下一座島。":"The compass points to the next island.","← 返回":"← Back","商店":"Shop","金蘋果 ×1　—　5 綠寶石":"Golden Apple ×1 — 5 emeralds","鑽石劍　—　20 綠寶石":"Diamond Sword — 20 emeralds","買金蘋果":"Buy golden apple","需要 5 綠寶石":"Costs 5 emeralds","# 數一下身上的綠寶石（clear 數量 0 只計數不清除）\nexecute store result score #n demo.dlg run clear @s minecraft:emerald 0\nexecute if score #n demo.dlg matches 5.. run give @s minecraft:golden_apple\nexecute if score #n demo.dlg matches 5.. run clear @s minecraft:emerald 5\nexecute unless score #n demo.dlg matches 5.. run tellraw @s {\"text\":\"綠寶石不夠！\",\"color\":\"red\"}":"# Count the emeralds (clear with count 0 only counts, removes nothing)\nexecute store result score #n demo.dlg run clear @s minecraft:emerald 0\nexecute if score #n demo.dlg matches 5.. run give @s minecraft:golden_apple\nexecute if score #n demo.dlg matches 5.. run clear @s minecraft:emerald 5\nexecute unless score #n demo.dlg matches 5.. run tellraw @s {\"text\":\"Not enough emeralds!\",\"color\":\"red\"}","買鑽石劍":"Buy diamond sword","需要 20 綠寶石":"Costs 20 emeralds","execute store result score #n demo.dlg run clear @s minecraft:emerald 0\nexecute if score #n demo.dlg matches 20.. run give @s minecraft:diamond_sword\nexecute if score #n demo.dlg matches 20.. run clear @s minecraft:emerald 20\nexecute unless score #n demo.dlg matches 20.. run tellraw @s {\"text\":\"綠寶石不夠！\",\"color\":\"red\"}":"execute store result score #n demo.dlg run clear @s minecraft:emerald 0\nexecute if score #n demo.dlg matches 20.. run give @s minecraft:diamond_sword\nexecute if score #n demo.dlg matches 20.. run clear @s minecraft:emerald 20\nexecute unless score #n demo.dlg matches 20.. run tellraw @s {\"text\":\"Not enough emeralds!\",\"color\":\"red\"}","確定要放棄進度？":"Give up your progress?","所有物品會被清空，回到大廳。":"Your inventory will be cleared and you'll go back to the lobby.","確定放棄":"Give up","再想想":"Let me think","空白專案":"Blank project","一個主選單，從零開始。":"One main menu — start from scratch.","主選單、設定（四種輸入）、手冊、商店、確認框，看看怎麼串。":"Main menu, settings (all four inputs), guide, shop and a confirmation — see how they link up.","刪除對話框「{0}」？（可以按 Ctrl+Z 復原）":"Delete dialog \"{0}\"? (Ctrl+Z undoes it)","已下載專案檔":"Project file downloaded","不是 Dialog 工坊的專案檔":"Not a Dialog Workshop project file","已開啟「":"Opened \"","開啟失敗：":"Couldn't open: ","{0} 不是合法 JSON":"{0} is not valid JSON","— 重來 —":"— restart —","已載入示範專案，按「📁 專案」可以開新的空白專案":"Demo project loaded — use \"📁 Projects\" to start a blank one","⚠ 這裡的文字在遊戲裡不會顯示滑鼠提示、也不能點擊（只有內文的文字可以）。按鈕請改用下面的「滑鼠提示」，游標停在按鈕任何地方都會顯示。":"⚠ Text here can't show hover text or be clicked in-game (only body text can). For buttons, use the \"Hover text\" below instead — it shows anywhere on the button.","進階：翻譯鍵、其他屬性":"Advanced: translation key, other props","工坊":"Workshop","💾 儲存成檔案":"💾 Save as file","📥 匯入對話框 JSON":"📥 Import dialog JSON","專案名稱":"Project","對話框":"Dialogs","＋ 新增":"+ Add","⧉ 複製":"⧉ Duplicate","✕ 刪除":"✕ Delete","✎ 編輯":"✎ Edit","⇄ 流程圖":"⇄ Flow map","⚙ 專案設定":"⚙ Project","← 上一個":"← Back","⟲ 重來":"⟲ Restart","1080p・介面 4（480×270）":"1080p · GUI 4 (480×270)","1080p・介面 3（640×360）":"1080p · GUI 3 (640×360)","720p・介面 3（427×240）":"720p · GUI 3 (427×240)","1366×768・介面 2":"1366×768 · GUI 2","1080p・介面 2（960×540）":"1080p · GUI 2 (960×540)","預覽紀錄（按下按鈕後送出的指令）":"Preview log (commands sent by clicked buttons)","清除":"Clear","復原（Ctrl+Z）":"Undo (Ctrl+Z)","重做（Ctrl+Y）":"Redo (Ctrl+Y)","下載專案檔（Ctrl+S）":"Download project file (Ctrl+S)","新增對話框":"Add dialog","回到上一個對話框":"Back to the previous dialog","重新打開編輯中的對話框":"Reopen the dialog being edited","模擬按下 Esc":"Simulate pressing Esc","模擬的螢幕大小（GUI 像素）":"Simulated screen size (GUI pixels)","Dialog 工坊 — Minecraft 對話框生成器":"Dialog Workshop — Minecraft dialog maker","可預覽、可存專案、從零開始做 Minecraft 互動式對話框（dialog）的生成器，一鍵匯出資料包。":"A Minecraft dialog maker with live preview and saved projects: build interactive dialogs from scratch and export a datapack in one click."},"zh-CN":{"粗體":"粗体","斜體":"斜体","底線":"底线","刪除線":"删除线","亂碼（obfuscated）":"乱码（obfuscated）","多按鈕選單":"多按钮菜单","多顆按鈕排成格狀，主選單、商店、設定都用它。":"多颗按钮排成格状，主菜单、商店、设置都用它。","一段訊息＋底部一顆按鈕。":"一段消息＋底部一颗按钮。","確認":"确认","底部「是／否」兩顆按鈕。":"底部“是／否”两颗按钮。","對話框清單":"对话框清单","自動列出其他對話框的按鈕。":"自动列出其他对话框的按钮。","伺服器連結":"服务器链接","顯示伺服器設定的連結（多人伺服器用）。":"显示服务器设置的链接（多人服务器用）。","不做事（只關閉）":"不做事（只关闭）","開啟另一個對話框":"打开另一个对话框","執行指令（自動產生資料包，免 OP）":"运行指令（自动产生数据包，免 OP）","設定 trigger 計分板":"设置 trigger 计分板","把輸入欄位的值帶進指令":"把输入字段的值带进指令","直接執行指令（需權限）":"直接运行指令（需权限）","把指令填進聊天欄":"把指令填进聊天栏","開啟網址":"打开网址","複製文字到剪貼簿":"拷贝文本到剪贴板","自訂封包（伺服器外掛用）":"自定义封包（服务器插件用）","自訂封包＋輸入值（外掛用）":"自定义封包＋输入值（插件用）","（無）":"（无）","執行指令":"运行指令","填入聊天欄":"填入聊天栏","複製到剪貼簿":"拷贝到剪贴板","開啟對話框（ID）":"打开对话框（ID）","按鈕":"按钮","新的對話框":"新的对话框","確定":"确定","我的地圖":"我的地图","標籤":"标签","輸入文字":"输入文本","勾選":"勾选","選項":"选项","選項 A":"选项 A","選項 B":"选项 B","數值":"数值","文字輸入":"文本输入","勾選框":"勾选框","選項切換":"选项切换","數值滑桿":"数值滑杆","瀏覽器儲存空間不足，請下載專案檔備份":"浏览器保存空间不足，请下载项目文件备份","命名空間「{0}」只能用小寫英文、數字、_ - .":"命名空间“{0}”只能用小写英文、数字、_ - .","ID「{0}」只能用小寫英文、數字、_ - . /":"ID“{0}”只能用小写英文、数字、_ - . /","ID「{0}」重複了":"ID“{0}”重复了","「暫停遊戲」開著時，按鈕後的行為不能是「保持開啟」（遊戲會一直停住，Minecraft 不接受）":"“暂停游戏”开着时，按钮后的行为不能是“保持打开”（游戏会一直停住，Minecraft 不接受）","多按鈕選單至少要有一顆按鈕":"多按钮菜单至少要有一颗按钮","對話框清單至少要列一個對話框（或填標籤）":"对话框清单至少要列一个对话框（或填标签）","輸入欄位的鍵名「{0}」只能用英文、數字、底線":"输入字段的键名“{0}”只能用英文、数字、底线","輸入欄位的鍵名「{0}」重複":"输入字段的键名“{0}”重复","選項切換「{0}」至少要一個選項":"选项切换“{0}”至少要一个选项","選項切換「{0}」只能有一個預設選項":"选项切换“{0}”只能有一个默认选项","數值滑桿「{0}」的間隔要大於 0":"数值滑杆“{0}”的间隔要大于 0","數值滑桿「{0}」的初始值不在範圍內":"数值滑杆“{0}”的初始值不在范围内","文字輸入「{0}」的預設文字超過最大長度":"文本输入“{0}”的默认文本超过最大长度","物品「{0}」的元件（components）不是合法 JSON":"物品“{0}”的组件（components）不是合法 JSON","按鈕「{0}」":"按钮“{0}”","（無字）":"（无字）","{0}寬度要在 1～1024":"{0}宽度要在 1～1024","{0}沒有選要開的對話框":"{0}没有选要开的对话框","{0}的「{1}」需要權限，玩家會先看到確認畫面；改用「執行指令（自動產生資料包）」就不會":"{0}的“{1}”需要权限，玩家会先看到确认画面；改用“运行指令（自动产生数据包）”就不会","{0}會帶入輸入值，但這個對話框沒有輸入欄位":"{0}会带入输入值，但这个对话框没有输入字段","{0}用到不存在的鍵名 $({1})":"{0}用到不存在的键名 $({1})","{0}的「{1}」需要權限，玩家會先看到確認畫面":"{0}的“{1}”需要权限，玩家会先看到确认画面","{0}的計分板名稱不合法":"{0}的计分板名称不合法","[分數 {0}:{1}]":"[分数 {0}:{1}]","[按鍵 {0}]":"[按键 {0}]","[圖示]":"[图标]","・{0} 個對話框":"・{0} 个对话框","還沒有對話框":"还没有对话框","＋ 新增第一個":"＋ 添加第一个","（無標題）":"（无标题）","起始對話框":"起始对话框","有錯誤":"有错误","（不開啟）":"（不打开）","＋ 加入文字":"＋ 加入文本","同一行裡加入不同顏色／樣式的另一段字":"同一行里加入不同颜色／样式的另一段字","＋ 不同樣式的一段":"＋ 不同样式的一段","輸入文字…（Enter 換行）":"输入文本…（Enter 换行）","顏色":"颜色","進階：翻譯鍵、滑鼠提示、點擊動作":"高端：翻译键、鼠标提示、点击动作","刪除這段":"删除这段","翻譯鍵":"翻译键","填了之後，上面的文字會變成 fallback（找不到翻譯時顯示）。":"填了之后，上面的文本会变成 fallback（找不到翻译时显示）。","滑鼠提示":"鼠标提示","游標停在字上時顯示":"光标停在字上时显示","點擊文字":"点击文本","指令／網址／內容":"指令／网址／内容","其他屬性":"其他属性","這段是分數／選擇器／圖示等特殊元件，內容在這裡編輯。":"这段是分数／选择器／图标等特殊组件，内容在这里编辑。","進階：JSON 物件，例如 <code>{\"font\":\"minecraft:uniform\"}</code>、翻譯參數 <code>{\"with\":[\"5\"]}</code>。":"高端：JSON 对象，例如 <code>{\"font\":\"minecraft:uniform\"}</code>、翻译参数 <code>{\"with\":[\"5\"]}</code>。","特殊元件，內容在「⋯ → 其他屬性」編輯":"特殊组件，内容在“⋯ → 其他属性”编辑","請輸入 #RRGGBB":"请输入 #RRGGBB","套用":"应用","↺ 預設顏色（白）":"↺ 默认颜色（白）","複製":"拷贝","刪除":"删除","按下後":"按下后","（這個對話框還沒有輸入欄位）":"（这个对话框还没有输入字段）","按下後照「按鈕後的行為」處理（預設是關閉對話框）。":"按下后照“按钮后的行为”处理（默认是关闭对话框）。","開啟":"打开","直接在玩家畫面上換成那個對話框，不經過伺服器、不需要權限。":"直接在玩家画面上换成那个对话框，不经过服务器、不需要权限。","每行一條，以玩家身份、在玩家位置執行，例如：\ngive @s diamond 1\nplaysound minecraft:entity.player.levelup master @s\ntp @s 0 100 0":"每行一条，以玩家身份、在玩家位置运行，例如：\ngive @s diamond 1\nplaysound minecraft:entity.player.levelup master @s\ntp @s 0 100 0","玩家按下時會送出 <code>/trigger {0} set {1}</code>，資料包收到後執行這些指令。不需要 OP，也不會跳確認畫面。":"玩家按下时会送出 <code>/trigger {0} set {1}</code>，数据包收到后运行这些指令。不需要 OP，也不会跳确认画面。","之後開啟":"之后打开","執行完再開另一個對話框（例如買完東西回到商店）。":"运行完再开另一个对话框（例如买完东西回到商店）。","計分板":"计分板","設成":"设成","送出 <code>/trigger {0} set {1}</code>，你的資料包自己偵測分數。計分板要是 <code>trigger</code> 類型且已 <code>enable</code>（可在「專案設定」的額外計分板自動建立）。":"送出 <code>/trigger {0} set {1}</code>，你的数据包自己检测分数。计分板要是 <code>trigger</code> 类型且已 <code>enable</code>（可在“项目设置”的额外计分板自动创建）。","只有 trigger、msg 這類一般玩家能用的指令不會跳確認畫面；其他指令玩家要有權限並按確認。":"只有 trigger、msg 这类一般玩家能用的指令不会跳确认画面；其他指令玩家要有权限并按确认。","關掉對話框、打開聊天欄並填入文字，讓玩家自己修改後送出。":"关掉对话框、打开聊天栏并填入文本，让玩家自己修改后送出。","網址":"网址","玩家會先看到「確定要開啟這個連結嗎」的畫面。":"玩家会先看到“确定要打开这个链接吗”的画面。","內容":"内容","要複製的文字":"要拷贝的文本","（選填）NBT／JSON":"（选填）NBT／JSON","送給伺服器的自訂封包，原版不會處理，給 Paper／Fabric 外掛用。":"送给服务器的自定义封包，原版不会处理，给 Paper／Fabric 插件用。","指令樣板":"指令样板","用 <code>$(鍵名)</code> 代入輸入欄位的值。":"用 <code>$(键名)</code> 代入输入字段的值。","插入鍵名":"插入键名","快速套用":"快速应用","要免權限只能送 <code>/trigger 計分板 set 整數</code>：選項的 ID、勾選框的真／假值、數值滑桿都可以設成整數。自由文字沒辦法免權限送進資料包。":"要免权限只能送 <code>/trigger 计分板 set 整数</code>：选项的 ID、勾选框的真／假值、数值滑杆都可以设成整数。自由文本没办法免权限送进数据包。","附加資料":"附加数据","（選填）JSON 物件":"（选填）JSON 对象","所有輸入欄位的值會一起送給伺服器外掛。":"所有输入字段的值会一起送给服务器插件。","文字":"文本","按鈕上的字":"按钮上的字","寬度":"宽度","GUI 像素，原版預設 150，1～1024":"GUI 像素，原版默认 150，1～1024","內文…（Enter 換行）":"内文…（Enter 换行）","超過就換行，預設 200":"超过就换行，默认 200","數量":"数量","說明文字":"说明文本","＋ 加入說明（顯示在物品右邊）":"＋ 加入说明（显示在物品右边）","說明寬度":"说明宽度","物品元件":"物品组件","（選填）JSON，例如 {\"minecraft:enchantment_glint_override\":true}":"（选填）JSON，例如 {\"minecraft:enchantment_glint_override\":true}","格子寬":"格子宽","顯示數量／耐久":"显示数量／耐久","游標停留顯示物品資訊":"光标停留显示物品信息","鍵名":"键名","按鈕用 <code>$(鍵名)</code> 讀取這個值":"按钮用 <code>$(键名)</code> 读取这个值","顯示標籤":"显示标签","預設文字":"默认文本","最大長度":"最大长度","多行輸入":"多行输入","最多行數":"最多行数","自動":"自动","預設勾選":"默认勾选","勾選時的值":"勾选时的值","沒勾時的值":"没勾时的值","帶進指令時代入的文字。要送 trigger 就設成 1 / 0。":"带进指令时代入的文本。要送 trigger 就设成 1 / 0。","＋ 顯示文字（不填就顯示 ID）":"＋ 显示文本（不填就显示 ID）","設為預設":"设为默认","新選項":"新选项","＋ 選項":"＋ 选项","ID 就是代入指令的值；★ 是開啟時的預設選項。":"ID 就是代入指令的值；★ 是打开时的默认选项。","間隔":"间隔","連續":"连续","中間":"中间","標籤格式":"标签格式","options.generic_value（「標籤: 值」）":"options.generic_value（“标签: 值”）","翻譯鍵，%s 依序是標籤與數值；通常留空。":"翻译键，%s 依序是标签与数值；通常留空。","從左邊選一個對話框，或新增一個開始。":"从左边选一个对话框，或添加一个开始。","＋ 新增對話框":"＋ 添加对话框","基本設定":"基本设置","檔案：<code>data/{0}/dialog/{1}.json</code>":"文件：<code>data/{0}/dialog/{1}.json</code>","類型":"类型","備註":"备注","只給自己看，不會匯出":"只给自己看，不会导出","行為":"行为","可以按 Esc 關閉":"可以按 Esc 关闭","單人時暫停遊戲":"单人时暂停游戏","起始對話框（流程圖的起點）":"起始对话框（流程图的起点）","按鈕後":"按钮后","關閉對話框":"关闭对话框","保持開啟":"保持打开","顯示「等待回應」直到伺服器開新的":"显示“等待回应”直到服务器开新的","用資料包開下一個對話框時選「等待回應」，畫面不會閃一下回到遊戲。":"用数据包开下一个对话框时选“等待回应”，画面不会闪一下回到游戏。","加到選單":"加到菜单","Esc 暫停畫面的按鈕":"Esc 暂停画面的按钮","快速動作鍵（預設 G）":"快速动作键（默认 G）","會寫進 <code>minecraft:pause_screen_additions</code>／<code>quick_actions</code> 標籤。":"会写进 <code>minecraft:pause_screen_additions</code>／<code>quick_actions</code> 标签。","標題":"标题","對話框頂端的標題":"对话框顶端的标题","外部標題":"外部标题","＋ 外部標題（在別的清單裡當按鈕文字時用）":"＋ 外部标题（在别的清单里当按钮文本时用）","內文":"内文","標題下面顯示的文字或物品，可以放好幾段。":"标题下面显示的文本或物品，可以放好几段。","（空的文字）":"（空的文本）","＋ 文字段落":"＋ 文本段落","輸入欄位":"输入字段","讓玩家填寫、勾選、選擇、拉滑桿；值透過「把輸入欄位的值帶進指令」的按鈕送出。":"让玩家填写、勾选、选择、拉滑杆；值通过“把输入字段的值带进指令”的按钮送出。","{0} 個":"{0} 个","關閉":"关闭","底部按鈕：":"底部按钮：","按 Esc 關閉時也會執行這顆按鈕的動作。":"按 Esc 关闭时也会运行这颗按钮的动作。","底部的單一按鈕。":"底部的单一按钮。","欄數":"栏数","每列放幾顆按鈕":"每列放几颗按钮","＋ 按鈕":"＋ 按钮","新按鈕":"新按钮","＋ 開啟對話框的按鈕":"＋ 打开对话框的按钮","＋ 執行指令的按鈕":"＋ 运行指令的按钮","執行":"运行","底部放一顆離開按鈕":"底部放一颗离开按钮","＋ 對話框":"＋ 对话框","每個對話框變成一顆按鈕，文字用它的外部標題（沒有就用標題）。":"每个对话框变成一颗按钮，文本用它的外部标题（没有就用标题）。","或用標籤":"或用标签","例如 mymap:menus（填了就不用上面的清單）":"例如 mymap:menus（填了就不用上面的清单）","按鈕寬度":"按钮宽度","連結內容由伺服器的 server.properties／外掛提供，這裡只設定版面。":"链接内容由服务器的 server.properties／插件提供，这里只设置版面。","{0} 顆":"{0} 颗","還沒有對話框。":"还没有对话框。","━ 直接開啟":"━ 直接打开","┅ 執行指令後開啟":"┅ 运行指令后打开","━ 清單":"━ 清单","　點一下選取、按兩下編輯。":"　点一下选取、按两下编辑。","已複製":"已拷贝","複製失敗，請手動選取":"拷贝失败，请手动选取","沒有選取對話框。":"没有选取对话框。","貼上一個 dialog JSON，按「取代」載入到這個對話框":"粘贴一个 dialog JSON，按“取代”加载到这个对话框","複製 JSON":"拷贝 JSON","複製「內嵌」指令":"拷贝“内嵌”指令","複製 /dialog show @s {0}:{1}":"拷贝 /dialog show @s {0}:{1}","下載這個檔":"下载这个文件","放在 <code>data/{0}/dialog/{1}.json</code>。「內嵌」指令不用放檔案就能直接在聊天欄或指令方塊測試（但裡面開啟其他對話框的按鈕仍需要資料包）。":"放在 <code>data/{0}/dialog/{1}.json</code>。“内嵌”指令不用放文件就能直接在聊天栏或命令方块测试（但里面打开其他对话框的按钮仍需要数据包）。","用 JSON 取代這個對話框":"用 JSON 取代这个对话框","已載入":"已加载","JSON 格式錯誤：":"JSON 格式错误：","自訂…":"自定义…","資料包":"数据包","名稱":"名称","命名空間":"命名空间","所有對話框的 ID 前綴，例如 <code>mymap:main_menu</code>。":"所有对话框的 ID 前缀，例如 <code>mymap:main_menu</code>。","說明":"说明","顯示在資料包清單裡":"显示在数据包清单里","遊戲版本":"游戏版本","對話框從 1.21.6 開始才有。格式號碼對不上時遊戲只會顯示「為舊版／新版製作」，仍可載入。":"对话框从 1.21.6 开始才有。格式号码对不上时游戏只会显示“为旧版／新版制作”，仍可加载。","指令按鈕（trigger）":"指令按钮（trigger）","「執行指令」按鈕共用這個 trigger 計分板，每顆按鈕一個編號。":"“运行指令”按钮共用这个 trigger 计分板，每颗按钮一个编号。","額外計分板":"额外计分板","會自動建立成 trigger 並每 tick 對所有人 enable，給「設定 trigger」或「帶入輸入值」的按鈕用；偵測分數的邏輯要你自己寫。":"会自动创建成 trigger 并每 tick 对所有人 enable，给“设置 trigger”或“带入输入值”的按钮用；检测分数的逻辑要你自己写。","產生開啟函數（function ns:open/<ID>）":"产生打开函数（function ns:open/<ID>）","目前的指令按鈕：<br>":"目前的指令按钮：<br>","#{0}　{1}　「{2}」":"#{0}　{1}　“{2}”","目前沒有「執行指令」按鈕。":"目前没有“运行指令”按钮。","預覽":"预览","從 mcasset.cloud 載入原版物品圖示（離線時顯示代號）":"从 mcasset.cloud 加载原版物品图标（脱机时显示代号）","開啟對話框 {0}":"打开对话框 {0}","開啟網址 ":"打开网址 ","填入聊天欄 ":"填入聊天栏 ","複製 ":"拷贝 ","（離開）":"（离开）","/trigger {0} set {1}　→ 資料包執行：":"/trigger {0} set {1}　→ 数据包运行：","聊天欄填入：{0}":"聊天栏填入：{0}","開啟網址：{0}":"打开网址：{0}","複製到剪貼簿：{0}":"拷贝到剪贴板：{0}","自訂封包 {0} {1}":"自定义封包 {0} {1}","（沒有對話框）":"（没有对话框）","對話框已關閉，回到遊戲":"对话框已关闭，回到游戏","重新開啟":"重新打开","⏸ 暫停":"⏸ 暂停","（標籤 #{0} 的內容只在遊戲裡看得到）":"（标签 #{0} 的内容只在游戏里看得到）","伺服器網站":"服务器网站","回報問題":"反馈问题","實際連結由伺服器提供":"实际链接由服务器提供","（伺服器連結）":"（服务器链接）","等待伺服器回應…":"等待服务器回应…","（這個對話框不能用 Esc 關閉）":"（这个对话框不能用 Esc 关闭）","{0}（Dialog 工坊產生）":"{0}（Dialog 工坊产生）","# 開啟「{0}」\ndialog show @s {1}\n":"# 打开“{0}”\ndialog show @s {1}\n","# Dialog 工坊：建立按鈕用的 trigger 計分板\n":"# Dialog 工坊：创建按钮用的 trigger 计分板\n","# 每 tick 讓所有人都能使用 trigger\n":"# 每 tick 让所有人都能使用 trigger\n","# 有人按了「執行指令」按鈕\nexecute as @a[scores={{0}=1..}] at @s run function {1}:dialog/handle\n":"# 有人按了“运行指令”按钮\nexecute as @a[scores={{0}=1..}] at @s run function {1}:dialog/handle\n","# 依按鈕編號分派（以按下的玩家身份執行）\nscoreboard players operation #btn {0} = @s {1}\nscoreboard players set @s {2} 0\n":"# 依按钮编号分派（以按下的玩家身份运行）\nscoreboard players operation #btn {0} = @s {1}\nscoreboard players set @s {2} 0\n","# {0}「{1}」\n":"# {0}“{1}”\n","{0} — 由 Dialog 工坊產生的資料包\n\n安裝\n1. 把這個 zip 放進存檔的 datapacks 資料夾（或在建立世界時加入）。\n2. 「離開世界再重新進入」。對話框是在進入世界時登錄的，只打 /reload 不會出現新的對話框。\n3. 用 /dialog show @s {1}:<ID>{2} 打開。\n\n對話框\n":"{0} — 由 Dialog 工坊产生的数据包\n\n安装\n1. 把这个 zip 放进存档的 datapacks 文件夹（或在创建世界时加入）。\n2. “离开世界再重新进入”。对话框是在进入世界时注册的，只打 /reload 不会出现新的对话框。\n3. 用 /dialog show @s {1}:<ID>{2} 打开。\n\n对话框\n","\n「執行指令」按鈕（trigger 計分板 {0}）\n":"\n“运行指令”按钮（trigger 计分板 {0}）\n","  #{0}　{1}「{2}」→ function {3}:dialog/btn/{4}\n":"  #{0}　{1}“{2}”→ function {3}:dialog/btn/{4}\n","\n按鈕的指令在 data/{0}/function/dialog/btn/ 裡，可以直接修改；重新從工坊匯出會覆蓋。\n":"\n按钮的指令在 data/{0}/function/dialog/btn/ 里，可以直接修改；重新从工坊导出会覆盖。\n","📦 匯出資料包":"📦 导出数据包","有 {0} 個錯誤，匯出後遊戲可能載入失敗：":"有 {0} 个错误，导出后游戏可能加载失败：","✔ 檢查通過。":"✔ 检查通过。","安裝方式":"安装方式","把 zip 放進存檔的 ":"把 zip 放进存档的 "," 資料夾。":" 文件夹。","離開世界再重新進入":"离开世界再重新进入","（新的對話框只在進入世界時登錄，":"（新的对话框只在进入世界时注册，"," 不夠）。":" 不够）。"," 打開。":" 打开。","{0}_dialogs_單檔.json":"{0}_dialogs_单文件.json","只下載全部 JSON":"只下载全部 JSON","已下載資料包":"已下载数据包","⬇ 下載 .zip":"⬇ 下载 .zip","📁 專案":"📁 项目","新專案":"新项目","已建立「":"已创建“","」":"”","存在這個瀏覽器的專案":"存在这个浏览器的项目","📂 開啟專案檔…":"📂 打开项目文件…","編輯中":"编辑中","{0} 個對話框・{1}":"{0} 个对话框・{1}","複製一份":"拷贝一份","下載專案檔":"下载项目文件","刪除專案「{0}」？這個動作不能復原（建議先下載專案檔備份）。":"删除项目“{0}”？这个动作不能撤销（建议先下载项目文件备份）。","（沒有）":"（没有）","專案自動存在這個瀏覽器（清除網站資料就會不見）。要換電腦或備份，請用「💾 儲存成檔案」下載 .dlgproj.json。":"项目自动存在这个浏览器（清除网站数据就会不见）。要换电脑或备份，请用“💾 保存成文件”下载 .dlgproj.json。","之後也可以在「基本設定」換類型，內文和輸入欄位會保留。":"之后也可以在“基本设置”换类型，内文和输入字段会保留。","選一個吧！":"选一个吧！","選項一":"选项一","選項二":"选项二","這是一則通知。":"这是一则通知。","確定要這樣做嗎？":"确定要这样做吗？","貼上 dialog JSON（單一個，或 {\"ns:id\": {...}, ...} 多個）":"粘贴 dialog JSON（单一个，或 {\"ns:id\": {...}, ...} 多个）","新對話框的 ID（單一個時）":"新对话框的 ID（单一个时）","📥 匯入對話框":"📥 导入对话框","可以把現有資料包 data/<命名空間>/dialog/ 裡的 .json 一次選很多個匯入（檔名就是 ID），或直接貼上 JSON。匯入後會自動把互相開啟的按鈕接起來。":"可以把现有数据包 data/<命名空间>/dialog/ 里的 .json 一次选很多个导入（文件名就是 ID），或直接粘贴 JSON。导入后会自动把互相打开的按钮接起来。","選擇 .json 檔案…":"选择 .json 文件…","匯入貼上的 JSON":"导入粘贴的 JSON","已匯入 {0} 個對話框":"已导入 {0} 个对话框","？ 說明":"？ 说明","\n<p>Dialog 工坊是給地圖作者用的 Minecraft <b>對話框（dialog）</b>生成器，支援 1.21.6 以後的版本（含 26.x）。左邊管理對話框、中間編輯、右邊即時預覽，而且預覽裡的按鈕真的可以按：開啟其他對話框、執行的指令會列在下面的紀錄。</p>\n<h3>基本流程</h3>\n<ol>\n<li>「📁 專案」→ 選範本或空白專案。專案會自動存在瀏覽器裡。</li>\n<li>左邊「＋ 新增」加對話框，最常用的是<b>多按鈕選單</b>。</li>\n<li>每顆按鈕選「按下後」要做什麼：開另一個對話框、執行指令、送出輸入值…</li>\n<li>「📦 匯出資料包」下載 zip，放進存檔的 datapacks，<b>離開世界再重新進入</b>。</li>\n</ol>\n<h3>為什麼推薦「執行指令（自動產生資料包）」</h3>\n<p>對話框按鈕直接執行需要權限的指令（give、tp、function…）時，玩家會先看到一個確認畫面，沒有權限的玩家根本執行不了。這個選項改成讓按鈕送出 <code>/trigger 計分板 set 編號</code>（任何玩家都能用），工坊產生的資料包每 tick 偵測，再以那位玩家的身份執行你寫的指令。所以玩家不需要 OP，也不會看到確認畫面。編號固定不變，重新匯出也一樣。</p>\n<h3>輸入欄位</h3>\n<p>文字輸入、勾選框、選項切換、數值滑桿。用「把輸入欄位的值帶進指令」的按鈕，在樣板裡寫 <code>$(鍵名)</code> 代入。要免權限傳進資料包，只能用 <code>/trigger 計分板 set $(鍵名)</code>，而且值要是整數（選項 ID、勾選的真／假值設成數字）。</p>\n<h3>文字樣式</h3>\n<p>每段文字可以設顏色、粗體、斜體、底線、刪除線、亂碼；按「⋯」可以加翻譯鍵（多語系地圖）、滑鼠提示、點擊動作。「＋ 不同樣式的一段」可以在同一行混合不同顏色。</p>\n<h3>小技巧</h3>\n<ul>\n<li>流程圖分頁看整個選單怎麼串接，點節點直接跳過去編輯。</li>\n<li>要用資料包接著開下一個對話框時，「按鈕後」選「等待回應」，畫面不會閃回遊戲。</li>\n<li>JSON 分頁可以複製「內嵌」指令，不放檔案就能在遊戲裡貼上測試。</li>\n<li>Ctrl+Z／Ctrl+Y 復原重做（焦點不在輸入框時），Ctrl+S 下載專案檔。</li>\n<li>預覽的字型、換行位置是近似值，實際以遊戲內為準。</li>\n</ul>":"\n<p>Dialog 工坊是给地图作者用的 Minecraft <b>对话框（dialog）</b>生成器，支持 1.21.6 以后的版本（含 26.x）。左边管理对话框、中间编辑、右边即时预览，而且预览里的按钮真的可以按：打开其他对话框、运行的指令会列在下面的纪录。</p>\n<h3>基本流程</h3>\n<ol>\n<li>“📁 项目”→ 选范本或空白项目。项目会自动存在浏览器里。</li>\n<li>左边“＋ 添加”加对话框，最常用的是<b>多按钮菜单</b>。</li>\n<li>每颗按钮选“按下后”要做什么：开另一个对话框、运行指令、送出输入值…</li>\n<li>“📦 导出数据包”下载 zip，放进存档的 datapacks，<b>离开世界再重新进入</b>。</li>\n</ol>\n<h3>为什么推荐“运行指令（自动产生数据包）”</h3>\n<p>对话框按钮直接运行需要权限的指令（give、tp、function…）时，玩家会先看到一个确认画面，没有权限的玩家根本运行不了。这个选项改成让按钮送出 <code>/trigger 计分板 set 编号</code>（任何玩家都能用），工坊产生的数据包每 tick 检测，再以那位玩家的身份运行你写的指令。所以玩家不需要 OP，也不会看到确认画面。编号固定不变，重新导出也一样。</p>\n<h3>输入字段</h3>\n<p>文本输入、勾选框、选项切换、数值滑杆。用“把输入字段的值带进指令”的按钮，在样板里写 <code>$(键名)</code> 代入。要免权限传进数据包，只能用 <code>/trigger 计分板 set $(键名)</code>，而且值要是整数（选项 ID、勾选的真／假值设成数字）。</p>\n<h3>文本样式</h3>\n<p>每段文本可以设颜色、粗体、斜体、底线、删除线、乱码；按“⋯”可以加翻译键（多语系地图）、鼠标提示、点击动作。“＋ 不同样式的一段”可以在同一行混合不同颜色。</p>\n<h3>小技巧</h3>\n<ul>\n<li>流程图分页看整个菜单怎么串接，点节点直接跳过去编辑。</li>\n<li>要用数据包接着开下一个对话框时，“按钮后”选“等待回应”，画面不会闪回游戏。</li>\n<li>JSON 分页可以拷贝“内嵌”指令，不放文件就能在游戏里粘贴测试。</li>\n<li>Ctrl+Z／Ctrl+Y 撤销重做（焦点不在输入框时），Ctrl+S 下载项目文件。</li>\n<li>预览的字体、换行位置是近似值，实际以游戏内为准。</li>\n</ul>","主選單":"主菜单","歡迎！從這裡開始做你的對話框。":"欢迎！从这里开始做你的对话框。","按鈕一":"按钮一","按鈕二":"按钮二","示範：冒險地圖選單":"示范：冒险地图菜单","冒險者選單":"冒险者菜单","歡迎來到 ":"欢迎来到 ","浮空群島":"浮空群岛","按 G 也能隨時打開這個選單。":"按 G 也能随时打开这个菜单。","▶ 開始冒險":"▶ 开始冒险","傳送到起點":"发送到起点","tp @s 0 100 0\ntitle @s title {\"text\":\"冒險開始！\",\"color\":\"gold\"}\nplaysound minecraft:ui.toast.challenge_complete master @s":"tp @s 0 100 0\ntitle @s title {\"text\":\"冒险开始！\",\"color\":\"gold\"}\nplaysound minecraft:ui.toast.challenge_complete master @s","⚙ 設定":"⚙ 设置","📖 冒險手冊":"📖 冒险手册","放棄進度…":"放弃进度…","設定":"设置","調整之後按「套用難度」。":"调整之后按“应用难度”。","難度":"难度","簡單":"简单","困難":"困难","顯示粒子特效":"显示粒子特效","隊伍名稱":"队伍名称","冒險者":"冒险者","套用難度":"应用难度","冒險手冊":"冒险手册","群島的傳說\n":"群岛的传说\n","很久以前，天空中漂浮著七座島嶼…":"很久以前，天空中漂浮着七座岛屿…","指南針會指向下一座島。":"指南针会指向下一座岛。","金蘋果 ×1　—　5 綠寶石":"金苹果 ×1　—　5 绿宝石","鑽石劍　—　20 綠寶石":"钻石剑　—　20 绿宝石","買金蘋果":"买金苹果","需要 5 綠寶石":"需要 5 绿宝石","# 數一下身上的綠寶石（clear 數量 0 只計數不清除）\nexecute store result score #n demo.dlg run clear @s minecraft:emerald 0\nexecute if score #n demo.dlg matches 5.. run give @s minecraft:golden_apple\nexecute if score #n demo.dlg matches 5.. run clear @s minecraft:emerald 5\nexecute unless score #n demo.dlg matches 5.. run tellraw @s {\"text\":\"綠寶石不夠！\",\"color\":\"red\"}":"# 数一下身上的绿宝石（clear 数量 0 只计数不清除）\nexecute store result score #n demo.dlg run clear @s minecraft:emerald 0\nexecute if score #n demo.dlg matches 5.. run give @s minecraft:golden_apple\nexecute if score #n demo.dlg matches 5.. run clear @s minecraft:emerald 5\nexecute unless score #n demo.dlg matches 5.. run tellraw @s {\"text\":\"绿宝石不够！\",\"color\":\"red\"}","買鑽石劍":"买钻石剑","需要 20 綠寶石":"需要 20 绿宝石","execute store result score #n demo.dlg run clear @s minecraft:emerald 0\nexecute if score #n demo.dlg matches 20.. run give @s minecraft:diamond_sword\nexecute if score #n demo.dlg matches 20.. run clear @s minecraft:emerald 20\nexecute unless score #n demo.dlg matches 20.. run tellraw @s {\"text\":\"綠寶石不夠！\",\"color\":\"red\"}":"execute store result score #n demo.dlg run clear @s minecraft:emerald 0\nexecute if score #n demo.dlg matches 20.. run give @s minecraft:diamond_sword\nexecute if score #n demo.dlg matches 20.. run clear @s minecraft:emerald 20\nexecute unless score #n demo.dlg matches 20.. run tellraw @s {\"text\":\"绿宝石不够！\",\"color\":\"red\"}","確定要放棄進度？":"确定要放弃进度？","所有物品會被清空，回到大廳。":"所有物品会被清空，回到大厅。","確定放棄":"确定放弃","空白專案":"空白项目","一個主選單，從零開始。":"一个主菜单，从零开始。","主選單、設定（四種輸入）、手冊、商店、確認框，看看怎麼串。":"主菜单、设置（四种输入）、手册、商店、确认框，看看怎么串。","刪除對話框「{0}」？（可以按 Ctrl+Z 復原）":"删除对话框“{0}”？（可以按 Ctrl+Z 撤销）","已下載專案檔":"已下载项目文件","不是 Dialog 工坊的專案檔":"不是 Dialog 工坊的项目文件","已開啟「":"已打开“","開啟失敗：":"打开失败：","— 重來 —":"— 重来 —","已載入示範專案，按「📁 專案」可以開新的空白專案":"已加载示范项目，按“📁 项目”可以开新的空白项目","⚠ 這裡的文字在遊戲裡不會顯示滑鼠提示、也不能點擊（只有內文的文字可以）。按鈕請改用下面的「滑鼠提示」，游標停在按鈕任何地方都會顯示。":"⚠ 这里的文本在游戏里不会显示鼠标提示、也不能点击（只有内文的文本可以）。按钮请改用下面的“鼠标提示”，光标停在按钮任何地方都会显示。","進階：翻譯鍵、其他屬性":"高端：翻译键、其他属性","💾 儲存成檔案":"💾 保存成文件","📥 匯入對話框 JSON":"📥 导入对话框 JSON","專案名稱":"项目名称","對話框":"对话框","＋ 新增":"＋ 添加","⧉ 複製":"⧉ 拷贝","✕ 刪除":"✕ 删除","✎ 編輯":"✎ 编辑","⇄ 流程圖":"⇄ 流程图","⚙ 專案設定":"⚙ 项目设置","← 上一個":"← 上一个","⟲ 重來":"⟲ 重来","1080p・介面 4（480×270）":"1080p・接口 4（480×270）","1080p・介面 3（640×360）":"1080p・接口 3（640×360）","720p・介面 3（427×240）":"720p・接口 3（427×240）","1366×768・介面 2":"1366×768・接口 2","1080p・介面 2（960×540）":"1080p・接口 2（960×540）","預覽紀錄（按下按鈕後送出的指令）":"预览纪录（按下按钮后送出的指令）","復原（Ctrl+Z）":"撤销（Ctrl+Z）","下載專案檔（Ctrl+S）":"下载项目文件（Ctrl+S）","新增對話框":"添加对话框","回到上一個對話框":"回到上一个对话框","重新打開編輯中的對話框":"重新打开编辑中的对话框","模擬按下 Esc":"仿真按下 Esc","模擬的螢幕大小（GUI 像素）":"仿真的屏幕大小（GUI 像素）","Dialog 工坊 — Minecraft 對話框生成器":"Dialog 工坊 — Minecraft 对话框生成器","可預覽、可存專案、從零開始做 Minecraft 互動式對話框（dialog）的生成器，一鍵匯出資料包。":"可预览、可存项目、从零开始做 Minecraft 交互式对话框（dialog）的生成器，一键导出数据包。"}};
+Object.assign(I18N.en, { '…還有 {0} 顆': '…and {0} more', '方塊裡的小標籤：↩ 回到前面　↻ 開回自己　→ 跳到別的分支（點一下跳過去）': 'Tags inside boxes: ↩ back to an earlier dialog  ↻ reopens itself  → jumps to another branch (click to go there)' ,
+  "不是 zip 檔：{0}": "Not a zip file: {0}",
+  "這個瀏覽器不支援解壓縮，請改用最新版 Chrome／Edge／Firefox，或先解壓再選資料夾": "This browser can't unzip files. Use the latest Chrome / Edge / Firefox, or unzip first and pick the folder",
+  "讀取中…": "Reading…",
+  "找不到任何對話框（data/<命名空間>/dialog/*.json）": "No dialogs found (data/<namespace>/dialog/*.json)",
+  "這裡有好幾個資料包／命名空間，要匯入哪一個？": "Found several datapacks / namespaces. Which one do you want to import?",
+  "{0}（{1} 個對話框）": "{0} ({1} dialogs)",
+  "來自 {0}": "from {0}",
+  "（根目錄）": "(root)",
+  "匯入": "Import",
+  "已匯入「{0}」：{1} 個對話框": "Imported \"{0}\": {1} dialogs",
+  "，{0} 個檔案讀不了：{1}": "; {0} file(s) could not be read: {1}",
+  "讀取失敗：{0}": "Couldn't read it: {0}",
+  "匯入整個資料包（成為新專案）": "Import a whole datapack (as a new project)",
+  "直接選資料包的 .zip 或資料夾，也可以選整個世界資料夾。會找出所有 data/<命名空間>/dialog/ 裡的對話框（含子資料夾），開成一個新專案，目前的專案不會被改到。": "Pick a datapack .zip or folder — or a whole world folder. Every dialog under data/<namespace>/dialog/ (subfolders included) is opened as a new project; your current project isn't touched.",
+  "選擇 .zip…": "Choose .zip…",
+  "選擇資料夾…": "Choose folder…",
+  "也可以把 .zip 直接拖進這個視窗。": "You can also drag a .zip onto this window.",
+  "或匯入單一對話框": "Or import single dialogs",
+  "全部展開": "Expand all",
+  "全部收合": "Collapse all" ,
+  "💬 回報問題": "💬 Feedback",
+  "回報問題或建議（需要 GitHub 帳號）": "Report a bug or suggest an idea (needs a GitHub account)",
+  "測試版": "beta",
+  "版本 {0}": "Version {0}",
+  "製作：{0}": "Made by {0}",
+  "<h3>讀別人的資料包</h3><p>「📥 匯入對話框 JSON」→「選擇 .zip…」或「選擇資料夾…」，可以直接打開別人的資料包，甚至整個世界資料夾，看看他們的對話框怎麼做。子資料夾會變成左邊可以展開、收合的資料夾。</p>": "<h3>Reading other people's datapacks</h3><p>\"📥 Import dialog JSON\" → \"Choose .zip…\" or \"Choose folder…\" opens someone else's datapack — or a whole world folder — so you can see how their dialogs are built. Subfolders become folders on the left that you can expand and collapse.</p>" }); Object.assign(I18N['zh-CN'], { '…還有 {0} 顆': '…还有 {0} 个', '方塊裡的小標籤：↩ 回到前面　↻ 開回自己　→ 跳到別的分支（點一下跳過去）': '方块里的小标签：↩ 回到前面　↻ 打开自己　→ 跳到别的分支（点一下跳过去）' ,
+  "不是 zip 檔：{0}": "不是 zip 文件：{0}",
+  "這個瀏覽器不支援解壓縮，請改用最新版 Chrome／Edge／Firefox，或先解壓再選資料夾": "这个浏览器不支持解压缩，请改用最新版 Chrome／Edge／Firefox，或先解压再选文件夹",
+  "讀取中…": "读取中…",
+  "找不到任何對話框（data/<命名空間>/dialog/*.json）": "找不到任何对话框（data/<命名空间>/dialog/*.json）",
+  "這裡有好幾個資料包／命名空間，要匯入哪一個？": "这里有好几个数据包／命名空间，要导入哪一个？",
+  "{0}（{1} 個對話框）": "{0}（{1} 个对话框）",
+  "來自 {0}": "来自 {0}",
+  "（根目錄）": "（根目录）",
+  "匯入": "导入",
+  "已匯入「{0}」：{1} 個對話框": "已导入“{0}”：{1} 个对话框",
+  "，{0} 個檔案讀不了：{1}": "，{0} 个文件读不了：{1}",
+  "讀取失敗：{0}": "读取失败：{0}",
+  "匯入整個資料包（成為新專案）": "导入整个数据包（成为新项目）",
+  "直接選資料包的 .zip 或資料夾，也可以選整個世界資料夾。會找出所有 data/<命名空間>/dialog/ 裡的對話框（含子資料夾），開成一個新專案，目前的專案不會被改到。": "直接选数据包的 .zip 或文件夹，也可以选整个世界文件夹。会找出所有 data/<命名空间>/dialog/ 里的对话框（含子文件夹），开成一个新项目，目前的项目不会被改到。",
+  "選擇 .zip…": "选择 .zip…",
+  "選擇資料夾…": "选择文件夹…",
+  "也可以把 .zip 直接拖進這個視窗。": "也可以把 .zip 直接拖进这个窗口。",
+  "或匯入單一對話框": "或导入单一对话框",
+  "全部展開": "全部展开",
+  "全部收合": "全部折叠" ,
+  "💬 回報問題": "💬 反馈问题",
+  "回報問題或建議（需要 GitHub 帳號）": "反馈问题或建议（需要 GitHub 帐号）",
+  "測試版": "测试版",
+  "版本 {0}": "版本 {0}",
+  "製作：{0}": "制作：{0}",
+  "<h3>讀別人的資料包</h3><p>「📥 匯入對話框 JSON」→「選擇 .zip…」或「選擇資料夾…」，可以直接打開別人的資料包，甚至整個世界資料夾，看看他們的對話框怎麼做。子資料夾會變成左邊可以展開、收合的資料夾。</p>": "<h3>读别人的数据包</h3><p>“📥 导入对话框 JSON”→“选择 .zip…”或“选择文件夹…”，可以直接打开别人的数据包，甚至整个世界文件夹，看看他们的对话框怎么做。子文件夹会变成左边可以展开、收合的文件夹。</p>" });
+function T(s, ...a) {
+  let r = LANG === 'zh-TW' ? s : ((I18N[LANG] || {})[s] ?? s);
+  return a.length ? r.replace(/\{(\d+)\}/g, (m, i) => i < a.length ? String(a[i]) : m) : r;
+}
+// 靜態 HTML 的字（頂列、分頁、預覽工具列）
+function translateStatic() {
+  if (LANG === 'zh-TW') return;
+  document.documentElement.lang = LANG === 'en' ? 'en' : 'zh-Hans';
+  document.title = T(document.title);
+  const md = document.querySelector('meta[name=description]'); if (md) md.content = T(md.content);
+  const w = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT);
+  for (let n; (n = w.nextNode());) {
+    if (n.parentElement.closest('script,#scr')) continue;
+    const t = n.nodeValue.trim(); if (t && I18N[LANG][t]) n.nodeValue = n.nodeValue.replace(t, I18N[LANG][t]);
+  }
+  document.querySelectorAll('[title],[placeholder]').forEach(e => {
+    for (const a of ['title', 'placeholder']) if (e.hasAttribute(a)) e.setAttribute(a, T(e.getAttribute(a)));
+  });
+}
+</script>
+<script>
+'use strict';
+/* =====================================================================
+   Dialog 工坊 — 單一檔案、無外部相依。資料存在瀏覽器 localStorage，
+   也可下載／開啟 .dlgproj.json 專案檔。輸出 Minecraft 1.21.6+／26.x 的 dialog 格式。
+   ===================================================================== */
+
+// ---------- 小工具 ----------
+const $ = (s, r = document) => r.querySelector(s);
+function h(tag, attrs, ...kids) {
+  const e = document.createElement(tag);
+  if (attrs) for (const k in attrs) {
+    const v = attrs[k];
+    if (v == null || v === false) continue;
+    if (k === 'class') e.className = v;
+    else if (k === 'style' && typeof v === 'object') Object.assign(e.style, v);
+    else if (k.startsWith('on') && typeof v === 'function') e.addEventListener(k.slice(2), v);
+    else if (k === 'value') e.value = v;
+    else if (k === 'checked') e.checked = !!v;
+    else if (k === 'html') e.innerHTML = v;
+    else e.setAttribute(k, v === true ? '' : v);
+  }
+  for (const c of kids.flat(Infinity)) {
+    if (c == null || c === false) continue;
+    e.append(c instanceof Node ? c : document.createTextNode(String(c)));
+  }
+  return e;
+}
+const uid = () => Math.random().toString(36).slice(2, 10);
+const clone = o => JSON.parse(JSON.stringify(o));
+const esc = s => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+function toast(msg, err) {
+  const t = $('#toast'); t.textContent = msg; t.className = 'on' + (err ? ' err' : '');
+  clearTimeout(toast._t); toast._t = setTimeout(() => t.className = '', 2200);
+}
+function download(name, data, type = 'application/json') {
+  const blob = data instanceof Blob ? data : new Blob([data], { type });
+  const a = h('a', { href: URL.createObjectURL(blob), download: name });
+  document.body.append(a); a.click(); a.remove();
+  setTimeout(() => URL.revokeObjectURL(a.href), 3000);
+}
+
+// ---------- Minecraft 常數 ----------
+const MC_COLORS = {
+  black: '#000000', dark_blue: '#0000AA', dark_green: '#00AA00', dark_aqua: '#00AAAA',
+  dark_red: '#AA0000', dark_purple: '#AA00AA', gold: '#FFAA00', gray: '#AAAAAA',
+  dark_gray: '#555555', blue: '#5555FF', green: '#55FF55', aqua: '#55FFFF',
+  red: '#FF5555', light_purple: '#FF55FF', yellow: '#FFFF55', white: '#FFFFFF'
+};
+const FMT = [['bold', 'B', T('粗體')], ['italic', 'I', T('斜體')], ['underlined', 'U', T('底線')], ['strikethrough', 'S', T('刪除線')], ['obfuscated', '?', T('亂碼（obfuscated）')]];
+const TYPES = {
+  multi_action: { n: T('多按鈕選單'), i: '▦', d: T('多顆按鈕排成格狀，主選單、商店、設定都用它。') },
+  notice: { n: T('通知'), i: '💬', d: T('一段訊息＋底部一顆按鈕。') },
+  confirmation: { n: T('確認'), i: '❓', d: T('底部「是／否」兩顆按鈕。') },
+  dialog_list: { n: T('對話框清單'), i: '☰', d: T('自動列出其他對話框的按鈕。') },
+  server_links: { n: T('伺服器連結'), i: '🔗', d: T('顯示伺服器設定的連結（多人伺服器用）。') }
+};
+const ACTS = [
+  ['none', T('不做事（只關閉）')],
+  ['show_dialog', T('開啟另一個對話框')],
+  ['cmds', T('執行指令（自動產生資料包，免 OP）')],
+  ['trigger', T('設定 trigger 計分板')],
+  ['dyn_run', T('把輸入欄位的值帶進指令')],
+  ['run_command', T('直接執行指令（需權限）')],
+  ['suggest_command', T('把指令填進聊天欄')],
+  ['open_url', T('開啟網址')],
+  ['copy', T('複製文字到剪貼簿')],
+  ['custom', T('自訂封包（伺服器外掛用）')],
+  ['dyn_custom', T('自訂封包＋輸入值（外掛用）')]
+];
+const CLICKS = [['', T('（無）')], ['run_command', T('執行指令')], ['suggest_command', T('填入聊天欄')], ['open_url', T('開啟網址')], ['copy_to_clipboard', T('複製到剪貼簿')], ['show_dialog', T('開啟對話框（ID）')]];
+const LVL0 = ['trigger', 'msg', 'tell', 'w', 'me', 'teammsg', 'tm', 'list', 'help', 'random'];
+const RX_ID = /^[a-z0-9_.\-]+(\/[a-z0-9_.\-]+)*$/;
+const RX_NS = /^[a-z0-9_.\-]+$/;
+const RX_KEY = /^[a-zA-Z0-9_]+$/;
+
+// ---------- 資料模型 ----------
+const seg = (text = '', o = {}) => ({ text, color: '', bold: false, italic: false, underlined: false, strikethrough: false, obfuscated: false, translate: '', hover: '', clickType: '', clickValue: '', raw: null, special: false, ...o });
+const act = (kind = 'none', o = {}) => ({ kind, target: '', extId: '', objective: '', value: 1, commands: '', thenOpen: '', command: '', url: '', cid: '', payload: '', template: '', num: 0, ...o });
+const btn = (label = T('按鈕'), o = {}, a) => ({ uid: uid(), label: [seg(label)], tooltip: [], width: 150, act: a || act(), ...o });
+function newDialog(type = 'multi_action', id = 'new_dialog') {
+  return {
+    uid: uid(), id, type, note: '',
+    title: [seg(T('新的對話框'), { color: 'yellow', bold: true })], ext: [],
+    body: [], inputs: [],
+    esc: true, pause: true, after: 'close',
+    actions: [], columns: 2, exit: null,
+    yes: btn(T('確定')), no: btn(T('取消')), notice: btn(T('好')),
+    list: [], listTag: '', bw: 150,
+    tagPause: false, tagQuick: false
+  };
+}
+function newProject(name = T('我的地圖')) {
+  return { fmt: 1, _id: uid(), name, ns: 'mymap', desc: '', packMin: 121, packMax: 121, trigObj: '', extraObjs: '', nextNum: 1, openFns: true, itemIcons: true, startUid: null, dialogs: [] };
+}
+const plainMsg = (text, o = {}) => ({ uid: uid(), kind: 'plain', contents: Array.isArray(text) ? text : [seg(text, o)], width: 200 });
+const itemBody = (id = 'minecraft:diamond', desc = '') => ({ uid: uid(), kind: 'item', id, count: 1, components: '', desc: desc ? [seg(desc)] : [], descWidth: 200, deco: true, tip: true, width: 16, height: 16 });
+function newInput(kind) {
+  const base = { uid: uid(), kind, key: kind + '_' + Math.floor(Math.random() * 90 + 10), label: [seg(T('標籤'))], labelVisible: true, width: 200 };
+  if (kind === 'text') Object.assign(base, { label: [seg(T('輸入文字'))], initial: '', maxLength: 32, multiline: false, maxLines: '', mHeight: '' });
+  if (kind === 'boolean') Object.assign(base, { label: [seg(T('勾選'))], initialB: false, onTrue: 'true', onFalse: 'false' });
+  if (kind === 'single_option') Object.assign(base, { label: [seg(T('選項'))], options: [{ uid: uid(), id: 'a', display: [seg(T('選項 A'))], initial: true }, { uid: uid(), id: 'b', display: [seg(T('選項 B'))], initial: false }] });
+  if (kind === 'number_range') Object.assign(base, { label: [seg(T('數值'))], labelFormat: '', start: 0, end: 10, step: 1, initialN: '' });
+  return base;
+}
+const INPUT_N = { text: T('文字輸入'), boolean: T('勾選框'), single_option: T('選項切換'), number_range: T('數值滑桿') };
+
+// ---------- 狀態 ----------
+let P = null;           // 目前專案
+let curUid = null;      // 編輯中的對話框
+let tab = 'edit';
+const closedCards = new Set();
+const foldSubs = new Set();
+const moreSegs = new WeakSet();
+
+const LS_KEY = 'dlgworkshop.projects.v1', LS_CUR = 'dlgworkshop.current';
+function loadAll() { try { return JSON.parse(localStorage.getItem(LS_KEY)) || {}; } catch { return {}; } }
+function saveAll(all) {
+  try { localStorage.setItem(LS_KEY, JSON.stringify(all)); }
+  catch (e) { toast(T('瀏覽器儲存空間不足，請下載專案檔備份'), true); }
+}
+let saveTimer;
+function saveSoon() { clearTimeout(saveTimer); saveTimer = setTimeout(saveNow, 400); }
+function saveNow() {
+  if (!P) return;
+  const all = loadAll(); all[P._id] = { name: P.name, t: Date.now(), data: P }; saveAll(all);
+  localStorage.setItem(LS_CUR, P._id);
+}
+
+// 復原／重做
+let hist = [], hi = -1, histTimer;
+function snap() {
+  const s = JSON.stringify(P);
+  if (hist[hi] === s) return;
+  hist = hist.slice(0, hi + 1); hist.push(s);
+  if (hist.length > 150) hist.shift();
+  hi = hist.length - 1; updUndo();
+}
+function snapSoon() { clearTimeout(histTimer); histTimer = setTimeout(snap, 500); }
+function undo() { snap(); if (hi > 0) { hi--; P = JSON.parse(hist[hi]); fixCur(); renderAll(); saveSoon(); } updUndo(); }
+function redo() { if (hi < hist.length - 1) { hi++; P = JSON.parse(hist[hi]); fixCur(); renderAll(); saveSoon(); } updUndo(); }
+function updUndo() { $('#bUndo').disabled = hi <= 0; $('#bRedo').disabled = hi >= hist.length - 1; }
+function fixCur() { if (!P.dialogs.find(d => d.uid === curUid)) curUid = P.dialogs[0]?.uid || null; }
+
+// 有東西改了：structural = 要重畫編輯器（新增／刪除／換類型）
+function changed(structural) {
+  if (structural) { renderAll(); snap(); }
+  else { renderSide(); renderPreview(); if (tab === 'flow' || tab === 'json') renderMid(); else if (tab === 'edit') refreshWarns(); refreshLive(); snapSoon(); }
+  saveSoon();
+}
+
+const getDlg = u => P.dialogs.find(d => d.uid === u);
+const curDlg = () => getDlg(curUid);
+const trigObj = () => P.trigObj || (P.ns || 'mymap') + '.dlg';
+const refOf = d => `${P.ns}:${d.id}`;
+const plain = segs => (segs || []).map(s => s.text || s.translate || '').join('');
+function findById(full) {
+  if (!full) return null;
+  let ns = 'minecraft', path = full;
+  if (full.includes(':')) [ns, path] = full.split(':');
+  return ns === P.ns ? P.dialogs.find(d => d.id === path) : null;
+}
+function uniqueId(base) {
+  base = (base || 'dialog').toLowerCase().replace(/[^a-z0-9_.\-/]/g, '_') || 'dialog';
+  let id = base, n = 2;
+  while (P.dialogs.some(d => d.id === id)) id = base + '_' + n++;
+  return id;
+}
+// 深拷貝並換新 uid；資料包指令按鈕拿新編號
+function cloneFresh(x) {
+  const c = clone(x);
+  (function walk(o) {
+    if (!o || typeof o !== 'object') return;
+    if (Array.isArray(o)) return o.forEach(walk);
+    if ('uid' in o) o.uid = uid();
+    if (o.kind === 'cmds' && 'num' in o) o.num = P.nextNum++;
+    Object.values(o).forEach(walk);
+  })(c);
+  return c;
+}
+
+/* =====================================================================
+   匯出：模型 → Minecraft JSON
+   ===================================================================== */
+function segJSON(s) {
+  const o = s.raw ? { ...s.raw } : {};
+  if (s.special) { /* 分數、選擇器、圖示…：內容整個在 raw 裡 */ }
+  else if (s.translate) { o.translate = s.translate; if (s.text) o.fallback = s.text; }
+  else o.text = s.text;
+  if (s.color) o.color = s.color;
+  for (const [f] of FMT) if (s[f]) o[f] = true;
+  if (s.hover) o.hover_event = { action: 'show_text', value: s.hover };
+  if (s.clickType) {
+    const k = { open_url: 'url', run_command: 'command', suggest_command: 'command', copy_to_clipboard: 'value', show_dialog: 'dialog' }[s.clickType];
+    o.click_event = { action: s.clickType, [k]: s.clickValue };
+  }
+  if (Object.keys(o).length === 1 && 'text' in o) return o.text;
+  return o;
+}
+function textJSON(segs) {
+  if (!segs || !segs.length) return '';
+  if (segs.length === 1) return segJSON(segs[0]);
+  return ['', ...segs.map(segJSON)];  // 第一個放空字串，後面的字才不會繼承第一段的樣式
+}
+const hasText = segs => segs && segs.some(s => s.text || s.translate);
+function tryParse(str) { if (!str || !str.trim()) return undefined; try { return JSON.parse(str); } catch { return str; } }
+function stripSlash(c) { return String(c || '').trim(); }
+
+function actionJSON(a) {
+  switch (a.kind) {
+    case 'none': return undefined;
+    case 'show_dialog': {
+      const t = getDlg(a.target);
+      return { type: 'minecraft:show_dialog', dialog: t ? refOf(t) : (a.extId || '') };
+    }
+    case 'cmds': return { type: 'minecraft:run_command', command: `/trigger ${trigObj()} set ${a.num}` };
+    case 'trigger': return { type: 'minecraft:run_command', command: `/trigger ${a.objective || trigObj()} set ${a.value === '' ? 1 : a.value}` };
+    case 'run_command': return { type: 'minecraft:run_command', command: a.command };
+    case 'suggest_command': return { type: 'minecraft:suggest_command', command: a.command };
+    case 'open_url': return { type: 'minecraft:open_url', url: a.url };
+    case 'copy': return { type: 'minecraft:copy_to_clipboard', value: a.command };
+    case 'custom': { const o = { type: 'minecraft:custom', id: a.cid }; const p = tryParse(a.payload); if (p !== undefined) o.payload = p; return o; }
+    case 'dyn_run': return { type: 'minecraft:dynamic/run_command', template: a.template };
+    case 'dyn_custom': { const o = { type: 'minecraft:dynamic/custom', id: a.cid }; const p = tryParse(a.payload); if (p && typeof p === 'object') o.additions = p; return o; }
+  }
+}
+function btnJSON(b) {
+  const o = { label: textJSON(b.label) };
+  if (hasText(b.tooltip)) o.tooltip = textJSON(b.tooltip);
+  o.width = Number(b.width) || 150;
+  const a = actionJSON(b.act); if (a) o.action = a;
+  return o;
+}
+function bodyJSON(b) {
+  if (b.kind === 'plain') return { type: 'minecraft:plain_message', contents: textJSON(b.contents), width: Number(b.width) || 200 };
+  const item = { id: b.id || 'minecraft:stone', count: Number(b.count) || 1 };
+  const comp = tryParse(b.components); if (comp && typeof comp === 'object') item.components = comp;
+  const o = { type: 'minecraft:item', item };
+  if (hasText(b.desc)) o.description = { contents: textJSON(b.desc), width: Number(b.descWidth) || 200 };
+  o.show_decorations = !!b.deco; o.show_tooltip = !!b.tip;
+  o.width = Number(b.width) || 16; o.height = Number(b.height) || 16;
+  return o;
+}
+function inputJSON(x) {
+  const o = { type: 'minecraft:' + x.kind, key: x.key, label: textJSON(x.label) };
+  if (x.kind === 'text') {
+    if (!x.labelVisible) o.label_visible = false;
+    o.width = Number(x.width) || 200;
+    if (x.initial) o.initial = x.initial;
+    o.max_length = Number(x.maxLength) || 32;
+    if (x.multiline) { o.multiline = {}; if (x.maxLines) o.multiline.max_lines = Number(x.maxLines); if (x.mHeight) o.multiline.height = Number(x.mHeight); }
+  } else if (x.kind === 'boolean') {
+    o.initial = !!x.initialB; o.on_true = x.onTrue; o.on_false = x.onFalse;
+  } else if (x.kind === 'single_option') {
+    if (!x.labelVisible) o.label_visible = false;
+    o.width = Number(x.width) || 200;
+    o.options = x.options.map(op => { const r = { id: op.id }; if (hasText(op.display)) r.display = textJSON(op.display); if (op.initial) r.initial = true; return r; });
+  } else if (x.kind === 'number_range') {
+    if (x.labelFormat) o.label_format = x.labelFormat;
+    o.width = Number(x.width) || 200;
+    o.start = Number(x.start); o.end = Number(x.end);
+    if (x.step !== '' && x.step != null) o.step = Number(x.step);
+    if (x.initialN !== '' && x.initialN != null) o.initial = Number(x.initialN);
+  }
+  return o;
+}
+function dialogJSON(d) {
+  const o = { type: 'minecraft:' + d.type, title: textJSON(d.title) };
+  if (hasText(d.ext)) o.external_title = textJSON(d.ext);
+  if (d.body.length) o.body = d.body.map(bodyJSON);
+  if (d.inputs.length) o.inputs = d.inputs.map(inputJSON);
+  o.can_close_with_escape = !!d.esc; o.pause = !!d.pause; o.after_action = d.after;
+  switch (d.type) {
+    case 'notice': o.action = btnJSON(d.notice); break;
+    case 'confirmation': o.yes = btnJSON(d.yes); o.no = btnJSON(d.no); break;
+    case 'multi_action': o.actions = d.actions.map(btnJSON); o.columns = Number(d.columns) || 2; if (d.exit) o.exit_action = btnJSON(d.exit); break;
+    case 'dialog_list':
+      o.dialogs = d.listTag ? '#' + d.listTag.replace(/^#/, '') : d.list.map(e => { const t = getDlg(e.ref); return t ? refOf(t) : e.extId; }).filter(Boolean);
+      if (d.exit) o.exit_action = btnJSON(d.exit);
+      o.columns = Number(d.columns) || 2; o.button_width = Number(d.bw) || 150; break;
+    case 'server_links':
+      if (d.exit) o.exit_action = btnJSON(d.exit);
+      o.columns = Number(d.columns) || 2; o.button_width = Number(d.bw) || 150; break;
+  }
+  return o;
+}
+const showCmd = d => `dialog show @s ${JSON.stringify(dialogJSON(d))}`;
+
+// 全部按鈕（含底部按鈕）
+function allButtons(d) {
+  switch (d.type) {
+    case 'notice': return [d.notice];
+    case 'confirmation': return [d.yes, d.no];
+    case 'multi_action': return [...d.actions, d.exit].filter(Boolean);
+    default: return [d.exit].filter(Boolean);
+  }
+}
+const allCmdButtons = () => P.dialogs.flatMap(d => allButtons(d).filter(b => b.act.kind === 'cmds').map(b => ({ d, b })));
+// 從指令裡找「dialog show … ns:id」
+function cmdDialogRefs(text) {
+  const out = []; const rx = /dialog\s+show\s+\S+\s+([a-z0-9_.\-]+:)?([a-z0-9_.\-/]+)/g; let m;
+  while ((m = rx.exec(text || ''))) { const ns = m[1] ? m[1].slice(0, -1) : 'minecraft'; if (ns === P.ns) { const t = P.dialogs.find(x => x.id === m[2]); if (t) out.push(t); } }
+  return out;
+}
+function linkTargets(a) {
+  const out = [];
+  if (a.kind === 'show_dialog') { const t = getDlg(a.target) || findById(a.extId); if (t) out.push({ t, k: 'show' }); }
+  if (a.kind === 'cmds') { const t = getDlg(a.thenOpen); if (t) out.push({ t, k: 'cmd' }); cmdDialogRefs(a.commands).forEach(t => out.push({ t, k: 'cmd' })); }
+  if (a.kind === 'run_command') cmdDialogRefs(a.command).forEach(t => out.push({ t, k: 'cmd' }));
+  return out;
+}
+
+/* =====================================================================
+   檢查
+   ===================================================================== */
+function validate() {
+  const out = []; // {uid, lv:'e'|'w', m}
+  const add = (d, lv, m) => out.push({ uid: d ? d.uid : null, lv, m });
+  if (!RX_NS.test(P.ns || '')) add(null, 'e', T('命名空間「{0}」只能用小寫英文、數字、_ - .', P.ns));
+  const ids = {};
+  for (const d of P.dialogs) {
+    if (!RX_ID.test(d.id)) add(d, 'e', T('ID「{0}」只能用小寫英文、數字、_ - . /', d.id));
+    if (ids[d.id]) add(d, 'e', T('ID「{0}」重複了', d.id)); ids[d.id] = 1;
+    if (d.pause && d.after === 'none') add(d, 'e', T('「暫停遊戲」開著時，按鈕後的行為不能是「保持開啟」（遊戲會一直停住，Minecraft 不接受）'));
+    if (d.type === 'multi_action' && !d.actions.length) add(d, 'e', T('多按鈕選單至少要有一顆按鈕'));
+    if (d.type === 'dialog_list' && !d.listTag && !d.list.length) add(d, 'e', T('對話框清單至少要列一個對話框（或填標籤）'));
+    const keys = {};
+    for (const x of d.inputs) {
+      if (!RX_KEY.test(x.key)) add(d, 'e', T('輸入欄位的鍵名「{0}」只能用英文、數字、底線', x.key));
+      if (keys[x.key]) add(d, 'e', T('輸入欄位的鍵名「{0}」重複', x.key)); keys[x.key] = 1;
+      if (x.kind === 'single_option') {
+        if (!x.options.length) add(d, 'e', T('選項切換「{0}」至少要一個選項', x.key));
+        if (x.options.filter(o => o.initial).length > 1) add(d, 'e', T('選項切換「{0}」只能有一個預設選項', x.key));
+      }
+      if (x.kind === 'number_range') {
+        if (!(Number(x.step) > 0) && x.step !== '') add(d, 'e', T('數值滑桿「{0}」的間隔要大於 0', x.key));
+        const lo = Math.min(x.start, x.end), hi2 = Math.max(x.start, x.end);
+        if (x.initialN !== '' && (x.initialN < lo || x.initialN > hi2)) add(d, 'e', T('數值滑桿「{0}」的初始值不在範圍內', x.key));
+      }
+      if (x.kind === 'text' && x.initial && x.initial.length > x.maxLength) add(d, 'e', T('文字輸入「{0}」的預設文字超過最大長度', x.key));
+    }
+    for (const b of d.body) if (b.kind === 'item') {
+      const c = tryParse(b.components);
+      if (typeof c === 'string') add(d, 'e', T('物品「{0}」的元件（components）不是合法 JSON', b.id));
+    }
+    for (const b of allButtons(d)) {
+      const a = b.act, nm = T('按鈕「{0}」', plain(b.label) || T('（無字）'));
+      if (!(b.width >= 1 && b.width <= 1024)) add(d, 'e', T('{0}寬度要在 1～1024', nm));
+      if (a.kind === 'show_dialog' && !getDlg(a.target) && !a.extId) add(d, 'e', T('{0}沒有選要開的對話框', nm));
+      if (a.kind === 'cmds' && !a.commands.trim() && !a.thenOpen) add(d, 'w', T('{0}的指令是空的', nm));
+      if (a.kind === 'run_command') {
+        const first = stripSlash(a.command).replace(/^\//, '').split(/\s+/)[0];
+        if (first && !LVL0.includes(first)) add(d, 'w', T('{0}的「{1}」需要權限，玩家會先看到確認畫面；改用「執行指令（自動產生資料包）」就不會', nm, first));
+      }
+      if (a.kind === 'dyn_run' || a.kind === 'dyn_custom') {
+        if (!d.inputs.length) add(d, 'w', T('{0}會帶入輸入值，但這個對話框沒有輸入欄位', nm));
+        const used = [...(a.template || '').matchAll(/\$\(([^)]*)\)/g)].map(m => m[1]);
+        for (const k of used) if (!keys[k]) add(d, 'e', T('{0}用到不存在的鍵名 $({1})', nm, k));
+        if (a.kind === 'dyn_run') {
+          const first = (a.template || '').replace(/^\//, '').split(/\s+/)[0];
+          if (first && !LVL0.includes(first)) add(d, 'w', T('{0}的「{1}」需要權限，玩家會先看到確認畫面', nm, first));
+        }
+      }
+      if (a.kind === 'trigger' && a.objective && !/^[A-Za-z0-9_.\-+]+$/.test(a.objective)) add(d, 'e', T('{0}的計分板名稱不合法', nm));
+    }
+  }
+  return out;
+}
+let lastWarn = [];
+
+/* =====================================================================
+   匯入：Minecraft JSON → 模型
+   ===================================================================== */
+function styleOf(c, st) {
+  if (!c || typeof c !== 'object' || Array.isArray(c)) return st;
+  const s = { ...st };
+  if (c.color) s.color = c.color;
+  for (const [f] of FMT) if (f in c) s[f] = !!c[f];
+  const hv = c.hover_event || c.hoverEvent;
+  if (hv && hv.action === 'show_text' && plainOnly(hv.value ?? hv.contents)) s.hover = plain(parseText(hv.value ?? hv.contents));
+  const ce = c.click_event || c.clickEvent;
+  if (ce && CLICKS.some(x => x[0] === ce.action && x[0])) { s.clickType = ce.action; s.clickValue = String(ce.url ?? ce.command ?? ce.value ?? ce.dialog ?? ''); }
+  return s;
+}
+// 提示文字只有純文字時才轉成可編輯欄位，否則原樣保留
+function plainOnly(v) { return typeof v === 'string' || (v && typeof v === 'object' && !Array.isArray(v) && Object.keys(v).every(k => k === 'text')); }
+const KNOWN_KEYS = new Set(['text', 'translate', 'fallback', 'color', 'bold', 'italic', 'underlined', 'strikethrough', 'obfuscated', 'extra', 'type']);
+// 編輯器沒有欄位的屬性（font、with、insertion、shadow_color、非文字的提示／點擊…）原樣保留
+function rawOf(c) {
+  const r = {};
+  for (const k in c) if (!KNOWN_KEYS.has(k)) r[k] = c[k];
+  const hv = r.hover_event; if (hv && hv.action === 'show_text' && plainOnly(hv.value ?? hv.contents)) delete r.hover_event;
+  const ce = r.click_event; if (ce && CLICKS.some(x => x[0] === ce.action && x[0])) delete r.click_event;
+  return Object.keys(r).length ? r : null;
+}
+function parseText(c) {
+  const out = [];
+  const walk = (c, st) => {
+    if (c == null) return;
+    if (typeof c !== 'object') { out.push(seg(String(c), { ...st })); return; }
+    if (Array.isArray(c)) { if (!c.length) return; const st2 = styleOf(c[0], st); walk(c[0], st); c.slice(1).forEach(x => walk(x, st2)); return; }
+    const s2 = styleOf(c, st);
+    const raw0 = rawOf(c);
+    // font、insertion 等樣式會傳給 extra 裡的子元件
+    const inh = { ...(st._inh || {}) };
+    if (raw0) for (const k of ['font', 'insertion', 'shadow_color', 'hover_event', 'click_event']) if (k in raw0) inh[k] = raw0[k];
+    s2._inh = inh;
+    const raw = Object.keys(inh).length || raw0 ? { ...inh, ...(raw0 || {}) } : null;
+    const { _inh, ...sty } = s2;
+    let text = '', tr = '', special = false;
+    if ('text' in c) text = String(c.text);
+    else if ('translate' in c) { tr = c.translate; text = c.fallback || ''; }
+    else {
+      special = true;
+      if (c.score) text = T('[分數 {0}:{1}]', c.score.name, c.score.objective);
+      else if (c.selector) text = `[${c.selector}]`;
+      else if (c.keybind) text = T('[按鍵 {0}]', c.keybind);
+      else if (c.nbt) text = `[NBT ${c.nbt}]`;
+      else text = T('[圖示]');
+    }
+    if (text || tr || special) out.push(seg(text, { ...sty, translate: tr, raw, special }));
+    (c.extra || []).forEach(x => walk(x, s2));
+  };
+  walk(c, {});
+  // 合併相鄰同樣式片段，減少雜訊
+  const m = [];
+  for (const s of out) {
+    if (!s.text && !s.translate && !s.special) continue;  // 空字串片段（例如陣列開頭的 ""）
+    const p = m[m.length - 1];
+    if (p && !p.translate && !s.translate && !p.special && !s.special && JSON.stringify({ ...p, text: '' }) === JSON.stringify({ ...s, text: '' })) p.text += s.text;
+    else m.push(s);
+  }
+  return m.length ? m : [seg('')];
+}
+function importAct(a) {
+  if (!a) return act();
+  const t = String(a.type || '').replace('minecraft:', '');
+  switch (t) {
+    case 'show_dialog': return act('show_dialog', { extId: typeof a.dialog === 'string' ? a.dialog : '' });
+    case 'run_command': {
+      const m = /^\/?trigger\s+(\S+)\s+set\s+(-?\d+)\s*$/.exec(a.command || '');
+      if (m) return act('trigger', { objective: m[1], value: Number(m[2]) });
+      return act('run_command', { command: a.command || '' });
+    }
+    case 'suggest_command': return act('suggest_command', { command: a.command || '' });
+    case 'open_url': return act('open_url', { url: a.url || '' });
+    case 'copy_to_clipboard': return act('copy', { command: a.value || '' });
+    case 'custom': return act('custom', { cid: a.id || '', payload: a.payload !== undefined ? JSON.stringify(a.payload) : '' });
+    case 'dynamic/run_command': return act('dyn_run', { template: a.template || '' });
+    case 'dynamic/custom': return act('dyn_custom', { cid: a.id || '', payload: a.additions ? JSON.stringify(a.additions) : '' });
+  }
+  return act();
+}
+function importBtn(b, def) {
+  const x = btn(def || '');
+  if (!b) return x;
+  x.label = parseText(b.label ?? def ?? '');
+  x.tooltip = b.tooltip ? parseText(b.tooltip) : [];
+  x.width = b.width ?? 150;
+  x.act = importAct(b.action);
+  return x;
+}
+function importDialog(j, id) {
+  const t = String(j.type || '').replace('minecraft:', '');
+  const d = newDialog(TYPES[t] ? t : 'notice', id);
+  d.title = parseText(j.title ?? '');
+  d.ext = j.external_title ? parseText(j.external_title) : [];
+  const body = j.body == null ? [] : Array.isArray(j.body) ? j.body : [j.body];
+  d.body = body.map(b => {
+    const bt = String(b.type || '').replace('minecraft:', '');
+    if (bt === 'item') {
+      const it = typeof b.item === 'string' ? { id: b.item } : (b.item || {});
+      const x = itemBody(it.id || 'minecraft:stone');
+      x.count = it.count ?? 1; x.components = it.components ? JSON.stringify(it.components, null, 1) : '';
+      const ds = b.description; if (ds) { if (typeof ds === 'object' && 'contents' in ds) { x.desc = parseText(ds.contents); x.descWidth = ds.width ?? 200; } else x.desc = parseText(ds); }
+      x.deco = b.show_decorations ?? true; x.tip = b.show_tooltip ?? true; x.width = b.width ?? 16; x.height = b.height ?? 16;
+      return x;
+    }
+    const x = plainMsg(''); x.contents = parseText(b.contents ?? ''); x.width = b.width ?? 200; return x;
+  });
+  d.inputs = (j.inputs || []).map(i => {
+    const k = String(i.type || '').replace('minecraft:', '');
+    const x = newInput(INPUT_N[k] ? k : 'text');
+    x.key = i.key || x.key; x.label = parseText(i.label ?? '');
+    if ('label_visible' in i) x.labelVisible = !!i.label_visible;
+    if ('width' in i) x.width = i.width;
+    if (x.kind === 'text') { x.initial = i.initial || ''; x.maxLength = i.max_length ?? 32; if (i.multiline) { x.multiline = true; x.maxLines = i.multiline.max_lines ?? ''; x.mHeight = i.multiline.height ?? ''; } }
+    if (x.kind === 'boolean') { x.initialB = !!i.initial; x.onTrue = i.on_true ?? 'true'; x.onFalse = i.on_false ?? 'false'; }
+    if (x.kind === 'single_option') x.options = (i.options || []).map(o => typeof o === 'string' ? { uid: uid(), id: o, display: [], initial: false } : { uid: uid(), id: o.id, display: o.display != null ? parseText(o.display) : [], initial: !!o.initial });
+    if (x.kind === 'number_range') { x.labelFormat = i.label_format || ''; x.start = i.start ?? 0; x.end = i.end ?? 10; x.step = i.step ?? ''; x.initialN = i.initial ?? ''; }
+    return x;
+  });
+  d.esc = j.can_close_with_escape ?? true; d.pause = j.pause ?? true; d.after = j.after_action || 'close';
+  if (d.type === 'notice') d.notice = importBtn(j.action, 'gui.ok');
+  if (d.type === 'confirmation') { d.yes = importBtn(j.yes, T('是')); d.no = importBtn(j.no, T('否')); }
+  if (d.type === 'multi_action') { d.actions = (j.actions || []).map(b => importBtn(b)); d.columns = j.columns ?? 2; }
+  if (['multi_action', 'dialog_list', 'server_links'].includes(d.type)) d.exit = j.exit_action ? importBtn(j.exit_action) : null;
+  if (d.type === 'dialog_list' || d.type === 'server_links') { d.columns = j.columns ?? 2; d.bw = j.button_width ?? 150; }
+  if (d.type === 'dialog_list') {
+    if (typeof j.dialogs === 'string') d.listTag = j.dialogs.replace(/^#/, '');
+    else d.list = (Array.isArray(j.dialogs) ? j.dialogs : []).filter(x => typeof x === 'string').map(x => ({ uid: uid(), ref: '', extId: x }));
+  }
+  return d;
+}
+// 匯入後把 ns:id 參照接回專案內的對話框
+function relinkRefs() {
+  for (const d of P.dialogs) {
+    for (const b of allButtons(d)) {
+      const a = b.act;
+      if (a.kind === 'show_dialog' && !a.target && a.extId) { const t = findById(a.extId); if (t) { a.target = t.uid; a.extId = ''; } }
+      if (a.kind === 'trigger' && a.objective === trigObj()) { /* 保持手動 trigger */ }
+    }
+    if (d.type === 'dialog_list') for (const e of d.list) if (!e.ref && e.extId) { const t = findById(e.extId); if (t) { e.ref = t.uid; e.extId = ''; } }
+  }
+}
+
+/* =====================================================================
+   側欄
+   ===================================================================== */
+function renderSide() {
+  $('#pname').textContent = P.name + (P.dialogs.length ? T('・{0} 個對話框', P.dialogs.length) : '');
+  const pn = $('#pName'), ns = $('#pNs');
+  if (document.activeElement !== pn) pn.value = P.name;
+  if (document.activeElement !== ns) ns.value = P.ns;
+  const box = $('#dlist'); box.innerHTML = '';
+  lastWarn = validate();
+  const bad = new Set(lastWarn.filter(w => w.lv === 'e').map(w => w.uid));
+  if (!P.dialogs.length) box.append(h('div', { class: 'empty', style: { padding: '30px 10px' } }, T('還沒有對話框'), h('br'), h('button', { class: 'add', style: { marginTop: '10px' }, onclick: addDialogPicker }, T('＋ 新增第一個'))));
+  // 照 ID 裡的資料夾分層（journal/ab/loot/special → journal ▸ ab ▸ loot ▸ special）
+  const root = { path: '', kids: new Map(), order: [], count: 0 };
+  for (const d of P.dialogs) {
+    const parts = d.id.split('/'); let n = root;
+    for (let i = 0; i < parts.length - 1; i++) {
+      if (!n.kids.has(parts[i])) { const c = { name: parts[i], path: (n.path ? n.path + '/' : '') + parts[i], kids: new Map(), order: [], count: 0, bad: false, cur: false }; n.kids.set(parts[i], c); n.order.push({ f: c }); }
+      n = n.kids.get(parts[i]); n.count++;
+      if (bad.has(d.uid)) n.bad = true;
+      if (d.uid === curUid) n.cur = true;
+    }
+    n.order.push({ d });
+  }
+  // 選到的對話框換了：自動展開它所在的資料夾
+  if (renderSide.lastCur !== curUid) {
+    const cd = getDlg(curUid);
+    if (cd) { const parts = cd.id.split('/'); for (let i = 1; i < parts.length; i++) closedFolders.delete(foldKey(parts.slice(0, i).join('/'))); saveFolds(); }
+    renderSide.lastCur = curUid;
+  }
+  const folders = [];
+  const draw = (n, into) => {
+    for (const o of n.order) {
+      if (o.f) {
+        const f = o.f, closed = closedFolders.has(foldKey(f.path));
+        into.append(h('div', { class: 'dfold' + (f.cur && closed ? ' cur' : ''), title: f.path, onclick: () => { closed ? closedFolders.delete(foldKey(f.path)) : closedFolders.add(foldKey(f.path)); saveFolds(); renderSide(); } },
+          h('span', { class: 'ar' }, closed ? '▸' : '▾'), h('span', {}, closed ? '📁' : '📂'), h('span', { class: 'nm' }, f.name),
+          f.bad && closed ? h('span', { class: 'bad', title: T('有錯誤') }, '⚠') : null,
+          h('span', { class: 'badge' }, f.count)));
+        if (!closed) { const sub = h('div', { class: 'dguide' }); draw(f, sub); into.append(sub); }
+      } else {
+        const d = o.d;
+        into.append(h('div', { class: 'ditem' + (d.uid === curUid ? ' on' : ''), title: refOf(d), onclick: () => select(d.uid) },
+          h('span', { class: 'ic', title: TYPES[d.type].n }, TYPES[d.type].i),
+          h('div', { class: 'tx' }, h('div', { class: 't1' }, plain(d.title) || T('（無標題）')), h('div', { class: 't2' }, d.id.split('/').pop())),
+          P.startUid === d.uid ? h('span', { class: 'star', title: T('起始對話框') }, '★') : null,
+          bad.has(d.uid) ? h('span', { class: 'bad', title: T('有錯誤') }, '⚠') : null));
+      }
+    }
+  };
+  draw(root, box);
+  (function all(n) { for (const c of n.kids.values()) { folders.push(c.path); all(c); } })(root);  // 包含被收起來的子資料夾
+  const fb = $('#foldBtns'); fb.innerHTML = '';
+  if (folders.length) fb.append(
+    h('button', { class: 'ib', title: T('全部展開'), onclick: () => { folders.forEach(p => closedFolders.delete(foldKey(p))); saveFolds(); renderSide(); } }, '⊞'),
+    h('button', { class: 'ib', title: T('全部收合'), onclick: () => { folders.forEach(p => closedFolders.add(foldKey(p))); saveFolds(); renderSide(); } }, '⊟'));
+}
+// 資料夾收合狀態（每個專案分開，記在瀏覽器）
+const closedFolders = new Set((() => { try { return JSON.parse(localStorage.getItem('dlgworkshop.folds')) || []; } catch { return []; } })());
+const foldKey = path => P._id + ':' + path;
+function saveFolds() { try { localStorage.setItem('dlgworkshop.folds', JSON.stringify([...closedFolders])); } catch { } }
+function select(u) { curUid = u; pvReset(); renderAll(); }
+
+/* =====================================================================
+   中欄：編輯器
+   ===================================================================== */
+function renderMid() {
+  document.querySelectorAll('.tab').forEach(t => t.classList.toggle('on', t.dataset.tab === tab));
+  if (tab === 'edit') renderEditor();
+  else if (tab === 'flow') renderFlow();
+  else if (tab === 'json') renderJSONTab();
+  else renderProjTab();
+}
+function renderAll() { renderSide(); renderMid(); renderPreview(); }
+
+function card(key, title, body, extra) {
+  const c = h('div', { class: 'card' + (closedCards.has(key) ? ' closed' : '') },
+    h('div', { class: 'ch', onclick: () => { closedCards.has(key) ? closedCards.delete(key) : closedCards.add(key); c.classList.toggle('closed'); } },
+      h('span', { class: 'arrow' }, '▾'), title, extra || null),
+    h('div', { class: 'cb' }, body));
+  return c;
+}
+function row(label, ctl, help) {
+  return h('div', { class: 'row' }, h('span', { class: 'lbl' }, label), h('div', { class: 'ctl' }, ctl, help ? (help instanceof Node ? help : h('span', { class: 'help', html: help })) : null));
+}
+// 內容會跟著其他欄位變的說明（例如檔案路徑跟著命名空間、ID）：每次有改動就重算
+let liveEls = [];
+function live(f) { const e = h('span', { class: 'help', html: f() }); liveEls.push({ e, f }); return e; }
+function refreshLive() { liveEls = liveEls.filter(x => x.e.isConnected); for (const x of liveEls) { const v = x.f(); if (x.e.innerHTML !== v) x.e.innerHTML = v; } }
+function fText(obj, key, o = {}) {
+  const i = h('input', { type: 'text', value: obj[key] ?? '', placeholder: o.ph || '', class: o.mono ? 'mono' : null });
+  i.oninput = () => { obj[key] = o.clean ? o.clean(i.value) : i.value; o.on && o.on(); changed(o.structural); };
+  if (o.clean) i.onblur = () => { i.value = obj[key]; };
+  return i;
+}
+function fNum(obj, key, o = {}) {
+  const i = h('input', { type: 'number', value: obj[key] ?? '', placeholder: o.ph || '', step: o.step || 'any', min: o.min, max: o.max, style: { maxWidth: o.w || '120px' } });
+  i.oninput = () => { obj[key] = i.value === '' ? (o.allowEmpty ? '' : (o.def ?? 0)) : Number(i.value); changed(); };
+  return i;
+}
+function fArea(obj, key, o = {}) {
+  const t = h('textarea', { class: o.code ? 'code' : null, placeholder: o.ph || '', rows: o.rows || 3 });
+  t.value = obj[key] ?? '';
+  t.oninput = () => { obj[key] = t.value; changed(); };
+  return t;
+}
+function fChk(obj, key, label, o = {}) {
+  const i = h('input', { type: 'checkbox', checked: !!obj[key] });
+  i.onchange = () => { obj[key] = i.checked; o.on && o.on(); changed(o.structural); };
+  return h('label', { class: 'chk' }, i, label);
+}
+function fSel(obj, key, opts, o = {}) {
+  const s = h('select', { style: o.w ? { maxWidth: o.w } : null }, opts.map(([v, n]) => h('option', { value: v }, n)));
+  s.value = obj[key] ?? '';
+  s.onchange = () => { obj[key] = s.value; o.on && o.on(s.value); changed(o.structural !== false); };
+  return s;
+}
+function dlgOptions(includeNone, noneText = T('（不開啟）')) {
+  const o = includeNone ? [['', noneText]] : [];
+  return o.concat(P.dialogs.map(d => [d.uid, `${plain(d.title) || T('（無標題）')} — ${d.id}`]));
+}
+
+// ---------- 文字元件編輯器 ----------
+function colorCss(c) { if (!c) return ''; return MC_COLORS[c] || c; }
+function autosize(t) { t.style.height = 'auto'; t.style.height = Math.max(28, t.scrollHeight) + 'px'; }
+function textEd(segs, o = {}) {
+  const wrap = h('div', { class: 'ted' });
+  function draw() {
+    wrap.innerHTML = '';
+    if (!segs.length) {
+      wrap.append(h('button', { class: 'add', onclick: () => { segs.push(seg('')); draw(); changed(); setTimeout(() => wrap.querySelector('textarea')?.focus()); } }, o.addText || T('＋ 加入文字')));
+      return;
+    }
+    segs.forEach((s, i) => wrap.append(segRow(s, i)));
+    wrap.append(h('div', { class: 'ted-foot' },
+      o.single ? null : h('button', { class: 'mini', title: T('同一行裡加入不同顏色／樣式的另一段字'), onclick: () => { segs.push(seg('', { color: segs[segs.length - 1]?.color || '' })); draw(); changed(); } }, T('＋ 不同樣式的一段')),
+      o.hint ? h('span', { class: 'help' }, o.hint) : null));
+  }
+  function segRow(s, i) {
+    const ta = h('textarea', { rows: 1, placeholder: o.ph || T('輸入文字…（Enter 換行）') });
+    ta.value = s.text;
+    const sty = () => {
+      ta.style.color = colorCss(s.color) || '#fff';
+      ta.style.fontWeight = s.bold ? '700' : '400';
+      ta.style.fontStyle = s.italic ? 'italic' : 'normal';
+      ta.style.textDecoration = [s.underlined && 'underline', s.strikethrough && 'line-through'].filter(Boolean).join(' ') || 'none';
+    };
+    sty();
+    ta.oninput = () => { s.text = ta.value; autosize(ta); changed(); };
+    requestAnimationFrame(() => autosize(ta));
+    const sw = h('button', { class: 'sw' + (s.color ? '' : ' def'), title: T('顏色'), style: s.color ? { background: colorCss(s.color) } : null, onclick: e => openColor(e.currentTarget, s.color, c => { s.color = c; draw(); changed(); }) });
+    const tools = h('div', { class: 'seg-tools' }, sw,
+      FMT.map(([f, l, n]) => h('button', { class: 'tog' + (s[f] ? ' on' : ''), title: n, style: f === 'bold' ? { fontWeight: 700 } : f === 'italic' ? { fontStyle: 'italic' } : f === 'underlined' ? { textDecoration: 'underline' } : f === 'strikethrough' ? { textDecoration: 'line-through' } : null, onclick: () => { s[f] = !s[f]; sty(); e2.querySelectorAll('.tog')[FMT.findIndex(x => x[0] === f)].classList.toggle('on', s[f]); changed(); } }, l)),
+      h('button', { class: 'tog' + (s.translate || s.hover || s.clickType || s.raw ? ' on' : ''), title: o.events ? T('進階：翻譯鍵、滑鼠提示、點擊動作') : T('進階：翻譯鍵、其他屬性'), onclick: () => { e2.classList.toggle('more'); moreSegs.has(s) ? moreSegs.delete(s) : moreSegs.add(s); } }, '⋯'),
+      (segs.length > 1 || o.optional) ? h('button', { class: 'tog', title: T('刪除這段'), onclick: () => { segs.splice(i, 1); draw(); changed(); } }, '✕') : null);
+    const more = h('div', { class: 'seg-more' },
+      row(T('翻譯鍵'), fText(s, 'translate', { ph: T('例如 mymap.menu.title（留空＝不用）'), mono: true }), T('填了之後，上面的文字會變成 fallback（找不到翻譯時顯示）。')),
+      !o.events && (s.hover || s.clickType) ? h('div', { class: 'warns', style: { margin: '4px 0' } }, h('div', { class: 'w' }, T('⚠ 這裡的文字在遊戲裡不會顯示滑鼠提示、也不能點擊（只有內文的文字可以）。按鈕請改用下面的「滑鼠提示」，游標停在按鈕任何地方都會顯示。'))) : null,
+      !o.events && !s.hover ? null : row(T('滑鼠提示'), fText(s, 'hover', { ph: T('游標停在字上時顯示') })),
+      !o.events && !s.clickType ? null : row(T('點擊文字'), h('div', { style: { display: 'flex', gap: '6px' } }, fSel(s, 'clickType', CLICKS, { structural: false, w: '150px' }), fText(s, 'clickValue', { ph: T('指令／網址／內容'), mono: true }))),
+      row(T('其他屬性'), rawEd(s), s.special ? T('這段是分數／選擇器／圖示等特殊元件，內容在這裡編輯。') : T('進階：JSON 物件，例如 <code>{"font":"minecraft:uniform"}</code>、翻譯參數 <code>{"with":["5"]}</code>。')));
+    if (s.special) { ta.readOnly = true; ta.title = T('特殊元件，內容在「⋯ → 其他屬性」編輯'); ta.style.opacity = .7; }
+    const e2 = h('div', { class: 'seg' + (moreSegs.has(s) ? ' more' : '') }, h('div', { class: 'seg-top' }, ta, tools), more);
+    return e2;
+  }
+  draw();
+  return wrap;
+}
+function rawEd(s) {
+  const t = h('textarea', { class: 'code', rows: 1, placeholder: '{ }', style: { minHeight: '30px' } });
+  t.value = s.raw ? JSON.stringify(s.raw) : '';
+  t.oninput = () => {
+    const v = t.value.trim();
+    if (!v) { s.raw = null; t.style.borderColor = ''; changed(); return; }
+    try { const j = JSON.parse(v); if (!j || typeof j !== 'object' || Array.isArray(j)) throw 0; s.raw = j; t.style.borderColor = ''; changed(); }
+    catch { t.style.borderColor = 'var(--err)'; }
+  };
+  return t;
+}
+// 色盤
+function openColor(anchor, cur, cb) {
+  const pop = $('#pop'); pop.innerHTML = '';
+  const hex = h('input', { type: 'text', value: cur && cur.startsWith('#') ? cur : (MC_COLORS[cur] || ''), placeholder: '#RRGGBB', class: 'mono' });
+  pop.append(
+    h('div', { class: 'help', style: { marginBottom: '6px' } }, T('Minecraft 16 色')),
+    h('div', { class: 'cols' }, Object.entries(MC_COLORS).map(([n, c]) => h('button', { title: n, style: { background: c }, onclick: () => { cb(n); closePop(); } }))),
+    h('div', { class: 'hexrow' }, h('input', { type: 'color', value: (hex.value || '#ffffff').slice(0, 7), style: { width: '38px', height: '30px', padding: '0', border: 'none', background: 'none' }, oninput: e => { hex.value = e.target.value.toUpperCase(); } }), hex,
+      h('button', { class: 'tb', onclick: () => { const v = hex.value.trim(); if (/^#[0-9a-fA-F]{6}$/.test(v)) { cb(v.toUpperCase()); closePop(); } else toast(T('請輸入 #RRGGBB'), true); } }, T('套用'))),
+    h('div', { style: { marginTop: '8px' } }, h('button', { class: 'mini', onclick: () => { cb(''); closePop(); } }, T('↺ 預設顏色（白）'))));
+  const r = anchor.getBoundingClientRect();
+  pop.style.display = 'block';
+  pop.style.left = Math.min(window.innerWidth - 240, r.left) + 'px';
+  pop.style.top = Math.min(window.innerHeight - 200, r.bottom + 4) + 'px';
+  setTimeout(() => document.addEventListener('mousedown', outside), 0);
+  function outside(e) { if (!pop.contains(e.target)) closePop(); }
+  closePop._f = outside;
+}
+function closePop() { $('#pop').style.display = 'none'; document.removeEventListener('mousedown', closePop._f); }
+
+// ---------- 清單編輯（上移、下移、複製、刪除） ----------
+function listEd(arr, o) {
+  const box = h('div');
+  arr.forEach((it, i) => {
+    const key = it.uid; const fold = foldSubs.has(key);
+    const s = h('div', { class: 'sub' + (fold ? ' fold' : '') },
+      h('div', { class: 'sh' },
+        h('button', { class: 'ib', title: T('收合'), onclick: () => { foldSubs.has(key) ? foldSubs.delete(key) : foldSubs.add(key); s.classList.toggle('fold'); } }, fold ? '▸' : '▾'),
+        h('span', { class: 'ttl' }, o.title(it, i)),
+        h('button', { class: 'ib', title: T('上移'), disabled: i === 0, onclick: () => { arr.splice(i - 1, 0, arr.splice(i, 1)[0]); changed(true); } }, '↑'),
+        h('button', { class: 'ib', title: T('下移'), disabled: i === arr.length - 1, onclick: () => { arr.splice(i + 1, 0, arr.splice(i, 1)[0]); changed(true); } }, '↓'),
+        h('button', { class: 'ib', title: T('複製'), onclick: () => { arr.splice(i + 1, 0, cloneFresh(it)); changed(true); } }, '⧉'),
+        h('button', { class: 'ib del', title: T('刪除'), onclick: () => { arr.splice(i, 1); changed(true); } }, '✕')),
+      h('div', { class: 'sb' }, o.render(it, i)));
+    box.append(s);
+  });
+  if (o.add) box.append(h('div', { class: 'addbar' }, o.add.map(([n, f]) => h('button', { class: 'add', onclick: () => { const x = f(); arr.push(x); changed(true); } }, n))));
+  return box;
+}
+
+// ---------- 按鈕與動作 ----------
+function actEd(a, d) {
+  const box = h('div');
+  const kindSel = fSel(a, 'kind', ACTS, { on: v => { if (v === 'cmds' && !a.num) a.num = P.nextNum++; } });
+  box.append(row(T('按下後'), kindSel));
+  const keysChips = (target, key) => h('div', {}, d.inputs.length ? d.inputs.map(x => h('span', { class: 'chip', title: T('插入 $({0})', x.key), onclick: () => { target[key] = (target[key] || '') + `$(${x.key})`; changed(true); } }, `$(${x.key})`)) : h('span', { class: 'help' }, T('（這個對話框還沒有輸入欄位）')));
+  switch (a.kind) {
+    case 'none':
+      box.append(h('div', { class: 'help' }, T('按下後照「按鈕後的行為」處理（預設是關閉對話框）。')));
+      break;
+    case 'show_dialog': {
+      const s = fSel(a, 'target', dlgOptions(true, T('（外部 ID…）')));
+      box.append(row(T('開啟'), s));
+      if (!a.target) box.append(row(T('外部 ID'), fText(a, 'extId', { ph: T('例如 minecraft:quick_actions 或 other:menu'), mono: true })));
+      box.append(h('div', { class: 'help' }, T('直接在玩家畫面上換成那個對話框，不經過伺服器、不需要權限。')));
+      break;
+    }
+    case 'cmds': {
+      box.append(row(T('指令'), fArea(a, 'commands', { code: true, rows: 4, ph: T('每行一條，以玩家身份、在玩家位置執行，例如：\ngive @s diamond 1\nplaysound minecraft:entity.player.levelup master @s\ntp @s 0 100 0') }),
+        live(() => T('玩家按下時會送出 <code>/trigger {0} set {1}</code>，資料包收到後執行這些指令。不需要 OP，也不會跳確認畫面。', esc(trigObj()), a.num))));
+      box.append(row(T('之後開啟'), fSel(a, 'thenOpen', dlgOptions(true)), T('執行完再開另一個對話框（例如買完東西回到商店）。')));
+      break;
+    }
+    case 'trigger':
+      box.append(h('div', { class: 'grid2' },
+        row(T('計分板'), fText(a, 'objective', { ph: trigObj(), mono: true })),
+        row(T('設成'), fNum(a, 'value', { step: 1 }))));
+      box.append(h('div', { class: 'help', html: T('送出 <code>/trigger {0} set {1}</code>，你的資料包自己偵測分數。計分板要是 <code>trigger</code> 類型且已 <code>enable</code>（可在「專案設定」的額外計分板自動建立）。', esc(a.objective || trigObj()), a.value) }));
+      break;
+    case 'run_command':
+      box.append(row(T('指令'), fText(a, 'command', { ph: T('/say 你好'), mono: true }), T('只有 trigger、msg 這類一般玩家能用的指令不會跳確認畫面；其他指令玩家要有權限並按確認。')));
+      break;
+    case 'suggest_command':
+      box.append(row(T('填入'), fText(a, 'command', { ph: '/msg ', mono: true }), T('關掉對話框、打開聊天欄並填入文字，讓玩家自己修改後送出。')));
+      break;
+    case 'open_url':
+      box.append(row(T('網址'), fText(a, 'url', { ph: 'https://…', mono: true }), T('玩家會先看到「確定要開啟這個連結嗎」的畫面。')));
+      break;
+    case 'copy':
+      box.append(row(T('內容'), fText(a, 'command', { ph: T('要複製的文字') })));
+      break;
+    case 'custom':
+      box.append(row('ID', fText(a, 'cid', { ph: 'myplugin:action', mono: true })), row('payload', fText(a, 'payload', { ph: T('（選填）NBT／JSON'), mono: true }), T('送給伺服器的自訂封包，原版不會處理，給 Paper／Fabric 外掛用。')));
+      break;
+    case 'dyn_run':
+      box.append(row(T('指令樣板'), fArea(a, 'template', { code: true, rows: 2, ph: '/trigger mymap.diff set $(difficulty)' }), T('用 <code>$(鍵名)</code> 代入輸入欄位的值。')));
+      box.append(row(T('插入鍵名'), keysChips(a, 'template')));
+      box.append(row(T('快速套用'), h('div', { class: 'addbar', style: { marginTop: 0 } },
+        d.inputs.filter(x => x.kind !== 'text').map(x => h('button', { class: 'add', onclick: () => { a.template = `/trigger ${P.extraObjs.split(/\s+/).filter(Boolean)[0] || trigObj()} set $(${x.key})`; changed(true); } }, `trigger ← ${x.key}`))),
+        T('要免權限只能送 <code>/trigger 計分板 set 整數</code>：選項的 ID、勾選框的真／假值、數值滑桿都可以設成整數。自由文字沒辦法免權限送進資料包。')));
+      break;
+    case 'dyn_custom':
+      box.append(row('ID', fText(a, 'cid', { ph: 'myplugin:form', mono: true })), row(T('附加資料'), fText(a, 'payload', { ph: T('（選填）JSON 物件'), mono: true }), T('所有輸入欄位的值會一起送給伺服器外掛。')));
+      break;
+  }
+  return box;
+}
+function btnEd(b, d, o = {}) {
+  return h('div', {},
+    row(T('文字'), textEd(b.label, { ph: T('按鈕上的字') })),
+    row(T('滑鼠提示'), textEd(b.tooltip, { optional: true, addText: T('＋ 加入提示'), noClick: true, noHover: true })),
+    row(T('寬度'), h('div', { style: { display: 'flex', gap: '8px', alignItems: 'center' } }, fNum(b, 'width', { step: 1, min: 1, max: 1024, def: 150 }), h('span', { class: 'help' }, T('GUI 像素，原版預設 150，1～1024')))),
+    actEd(b.act, d));
+}
+function btnTitle(b) {
+  const a = b.act; const k = ACTS.find(x => x[0] === a.kind)[1];
+  let extra = '';
+  if (a.kind === 'show_dialog') { const t = getDlg(a.target); extra = '→ ' + (t ? t.id : a.extId || '?'); }
+  else if (a.kind === 'cmds') extra = `#${a.num}` + (getDlg(a.thenOpen) ? ' → ' + getDlg(a.thenOpen).id : '');
+  return h('span', {}, h('span', { style: { color: colorCss(b.label[0]?.color) || '#fff' } }, plain(b.label) || T('（無字）')), h('small', {}, k.replace(/（.*）/, '') + ' ' + extra));
+}
+
+// ---------- 內文與輸入 ----------
+function bodyEd(b) {
+  if (b.kind === 'plain') return h('div', {},
+    textEd(b.contents, { ph: T('內文…（Enter 換行）'), events: true }),
+    row(T('寬度'), h('div', { style: { display: 'flex', gap: '8px', alignItems: 'center' } }, fNum(b, 'width', { step: 1, min: 1, max: 1024, def: 200 }), h('span', { class: 'help' }, T('超過就換行，預設 200')))));
+  return h('div', {},
+    h('div', { class: 'grid2' }, row(T('物品 ID'), fText(b, 'id', { ph: 'minecraft:diamond', mono: true })), row(T('數量'), fNum(b, 'count', { step: 1, min: 1, def: 1 }))),
+    row(T('說明文字'), textEd(b.desc, { optional: true, events: true, addText: T('＋ 加入說明（顯示在物品右邊）') })),
+    hasText(b.desc) ? row(T('說明寬度'), fNum(b, 'descWidth', { step: 1, def: 200 })) : null,
+    row(T('物品元件'), fArea(b, 'components', { code: true, rows: 2, ph: T('（選填）JSON，例如 {"minecraft:enchantment_glint_override":true}') })),
+    h('div', { class: 'grid2' },
+      row(T('格子寬'), fNum(b, 'width', { step: 1, min: 1, max: 256, def: 16 })),
+      row(T('格子高'), fNum(b, 'height', { step: 1, min: 1, max: 256, def: 16 }))),
+    row('', h('div', { style: { display: 'flex', gap: '14px' } }, fChk(b, 'deco', T('顯示數量／耐久')), fChk(b, 'tip', T('游標停留顯示物品資訊')))));
+}
+function inputEd(x) {
+  const parts = [
+    row(T('鍵名'), fText(x, 'key', { mono: true, ph: 'difficulty', clean: v => v.replace(/[^a-zA-Z0-9_]/g, '') }), T('按鈕用 <code>$(鍵名)</code> 讀取這個值')),
+    row(T('標籤'), textEd(x.label))
+  ];
+  if (x.kind !== 'boolean') parts.push(row(T('寬度'), fNum(x, 'width', { step: 1, min: 1, max: 1024, def: 200 })));
+  if (x.kind === 'text' || x.kind === 'single_option') parts.push(row('', fChk(x, 'labelVisible', T('顯示標籤'))));
+  if (x.kind === 'text') parts.push(
+    row(T('預設文字'), fText(x, 'initial')),
+    row(T('最大長度'), fNum(x, 'maxLength', { step: 1, min: 1, def: 32 })),
+    row('', fChk(x, 'multiline', T('多行輸入'), { structural: true })),
+    x.multiline ? h('div', { class: 'grid2' }, row(T('最多行數'), fNum(x, 'maxLines', { step: 1, min: 1, allowEmpty: true, ph: T('不限') })), row(T('高度'), fNum(x, 'mHeight', { step: 1, min: 1, max: 512, allowEmpty: true, ph: T('自動') }))) : null);
+  if (x.kind === 'boolean') parts.push(
+    row('', fChk(x, 'initialB', T('預設勾選'))),
+    h('div', { class: 'grid2' }, row(T('勾選時的值'), fText(x, 'onTrue', { mono: true })), row(T('沒勾時的值'), fText(x, 'onFalse', { mono: true }))),
+    h('div', { class: 'help' }, T('帶進指令時代入的文字。要送 trigger 就設成 1 / 0。')));
+  if (x.kind === 'single_option') parts.push(row(T('選項'), h('div', {},
+    x.options.map((op, i) => h('div', { class: 'sub', style: { margin: '4px 0' } }, h('div', { class: 'sb', style: { display: 'grid', gridTemplateColumns: 'minmax(0,1fr) auto', gap: '6px', alignItems: 'center' } },
+      fText(op, 'id', { mono: true, ph: 'ID' }),
+      h('div', { style: { display: 'flex', gap: '2px' } },
+        h('button', { class: 'tog' + (op.initial ? ' on' : ''), title: T('設為預設'), onclick: () => { x.options.forEach(o2 => o2.initial = o2 === op ? !op.initial : false); changed(true); } }, '★'),
+        h('button', { class: 'tog', title: T('上移'), onclick: () => { if (i > 0) { x.options.splice(i - 1, 0, x.options.splice(i, 1)[0]); changed(true); } } }, '↑'),
+        h('button', { class: 'tog', title: T('刪除'), onclick: () => { x.options.splice(i, 1); changed(true); } }, '✕')),
+      h('div', { style: { gridColumn: '1 / -1' } }, textEd(op.display, { single: true, optional: true, addText: T('＋ 顯示文字（不填就顯示 ID）'), noClick: true, noHover: true }))))),
+    h('button', { class: 'add', onclick: () => { x.options.push({ uid: uid(), id: String(x.options.length + 1), display: [seg(T('新選項'))], initial: false }); changed(true); } }, T('＋ 選項'))),
+    T('ID 就是代入指令的值；★ 是開啟時的預設選項。')));
+  if (x.kind === 'number_range') parts.push(
+    h('div', { class: 'grid2' },
+      row(T('最小'), fNum(x, 'start')), row(T('最大'), fNum(x, 'end')),
+      row(T('間隔'), fNum(x, 'step', { allowEmpty: true, ph: T('連續') })), row(T('初始值'), fNum(x, 'initialN', { allowEmpty: true, ph: T('中間') }))),
+    row(T('標籤格式'), fText(x, 'labelFormat', { ph: T('options.generic_value（「標籤: 值」）'), mono: true }), T('翻譯鍵，%s 依序是標籤與數值；通常留空。')));
+  return h('div', {}, parts);
+}
+
+function warnBox(d) {
+  const ws = lastWarn.filter(w => w.uid === d.uid || (w.uid === null));
+  const b = h('div', { id: 'warnBox' });
+  if (ws.length) b.append(h('div', { class: 'warns' }, ws.map(w => h('div', { class: w.lv }, (w.lv === 'e' ? '✖ ' : '⚠ ') + w.m))));
+  return b;
+}
+function refreshWarns() { const old = $('#warnBox'); const d = curDlg(); if (old && d) old.replaceWith(warnBox(d)); }
+
+function renderEditor() {
+  const mid = $('#midBody'); const st = mid.scrollTop; mid.innerHTML = '';
+  const d = curDlg();
+  if (!d) { mid.append(h('div', { class: 'empty' }, h('div', { style: { fontSize: '40px' } }, '🗨'), h('p', {}, T('從左邊選一個對話框，或新增一個開始。')), h('button', { class: 'tb pri', onclick: addDialogPicker }, T('＋ 新增對話框')))); return; }
+  const hasBtnGrid = d.type === 'multi_action';
+  mid.append(
+    warnBox(d),
+    card('basic', T('基本設定'), h('div', {},
+      h('div', { class: 'grid2' },
+        row('ID', fText(d, 'id', { mono: true, clean: v => v.toLowerCase().replace(/[^a-z0-9_.\-/]/g, '_') }), live(() => T('檔案：<code>data/{0}/dialog/{1}.json</code>', esc(P.ns), esc(d.id)))),
+        row(T('類型'), fSel(d, 'type', Object.entries(TYPES).map(([k, v]) => [k, v.i + ' ' + v.n])))),
+      row(T('備註'), fText(d, 'note', { ph: T('只給自己看，不會匯出') })),
+      row(T('行為'), h('div', { style: { display: 'flex', flexWrap: 'wrap', gap: '4px 16px' } },
+        fChk(d, 'esc', T('可以按 Esc 關閉')),
+        fChk(d, 'pause', T('單人時暫停遊戲')),
+        h('label', { class: 'chk' }, h('input', { type: 'checkbox', checked: P.startUid === d.uid, onchange: e => { P.startUid = e.target.checked ? d.uid : null; changed(true); } }), T('起始對話框（流程圖的起點）')))),
+      row(T('按鈕後'), fSel(d, 'after', [['close', T('關閉對話框')], ['none', T('保持開啟')], ['wait_for_response', T('顯示「等待回應」直到伺服器開新的')]], { w: '300px' }),
+        T('用資料包開下一個對話框時選「等待回應」，畫面不會閃一下回到遊戲。')),
+      row(T('加到選單'), h('div', { style: { display: 'flex', flexWrap: 'wrap', gap: '4px 16px' } },
+        fChk(d, 'tagPause', T('Esc 暫停畫面的按鈕')), fChk(d, 'tagQuick', T('快速動作鍵（預設 G）'))),
+        T('會寫進 <code>minecraft:pause_screen_additions</code>／<code>quick_actions</code> 標籤。')))),
+    card('title', T('標題'), h('div', {},
+      textEd(d.title, { ph: T('對話框頂端的標題') }),
+      row(T('外部標題'), textEd(d.ext, { optional: true, addText: T('＋ 外部標題（在別的清單裡當按鈕文字時用）') })))),
+    card('body', T('內文'), h('div', {},
+      d.body.length ? null : h('div', { class: 'help' }, T('標題下面顯示的文字或物品，可以放好幾段。')),
+      listEd(d.body, {
+        title: b => b.kind === 'plain' ? h('span', {}, '📝 ', plain(b.contents).slice(0, 30) || T('（空的文字）')) : h('span', {}, '💎 ', b.id),
+        render: b => bodyEd(b),
+        add: [[T('＋ 文字段落'), () => plainMsg('')], [T('＋ 物品'), () => itemBody()]]
+      })), h('span', { class: 'cnt' }, d.body.length ? T('{0} 段', d.body.length) : '')),
+    card('inputs', T('輸入欄位'), h('div', {},
+      d.inputs.length ? null : h('div', { class: 'help' }, T('讓玩家填寫、勾選、選擇、拉滑桿；值透過「把輸入欄位的值帶進指令」的按鈕送出。')),
+      listEd(d.inputs, {
+        title: x => h('span', {}, { text: '⌨ ', boolean: '☑ ', single_option: '⇆ ', number_range: '⇔ ' }[x.kind], INPUT_N[x.kind], h('small', {}, x.key)),
+        render: x => inputEd(x),
+        add: Object.entries(INPUT_N).map(([k, n]) => [T('＋ ') + n, () => newInput(k)])
+      })), h('span', { class: 'cnt' }, d.inputs.length ? T('{0} 個', d.inputs.length) : '')),
+    buttonsCard(d)
+  );
+  mid.scrollTop = st;
+}
+function exitToggle(d, label) {
+  return h('div', {},
+    fChk({ v: !!d.exit }, 'v', label, { structural: true, on: () => { d.exit = d.exit ? null : btn(T('關閉')); } }),
+    d.exit ? h('div', { class: 'sub' }, h('div', { class: 'sh' }, h('span', { class: 'ttl' }, T('底部按鈕：'), btnTitle(d.exit))), h('div', { class: 'sb' }, btnEd(d.exit, d), h('div', { class: 'help' }, T('按 Esc 關閉時也會執行這顆按鈕的動作。')))) : null);
+}
+function buttonsCard(d) {
+  let body;
+  if (d.type === 'notice') body = h('div', {}, h('div', { class: 'help' }, T('底部的單一按鈕。')), btnEd(d.notice, d));
+  else if (d.type === 'confirmation') body = h('div', {},
+    h('div', { class: 'sub' }, h('div', { class: 'sh' }, h('span', { class: 'ttl' }, T('✔ 是：'), btnTitle(d.yes))), h('div', { class: 'sb' }, btnEd(d.yes, d))),
+    h('div', { class: 'sub' }, h('div', { class: 'sh' }, h('span', { class: 'ttl' }, T('✖ 否：'), btnTitle(d.no))), h('div', { class: 'sb' }, btnEd(d.no, d))));
+  else if (d.type === 'multi_action') body = h('div', {},
+    row(T('欄數'), h('div', { style: { display: 'flex', gap: '8px', alignItems: 'center' } }, fNum(d, 'columns', { step: 1, min: 1, def: 2 }), h('span', { class: 'help' }, T('每列放幾顆按鈕')))),
+    listEd(d.actions, { title: b => btnTitle(b), render: b => btnEd(b, d), add: [[T('＋ 按鈕'), () => btn(T('新按鈕'))], [T('＋ 開啟對話框的按鈕'), () => btn(T('前往…'), {}, act('show_dialog', { target: P.dialogs.find(x => x !== d)?.uid || '' }))], [T('＋ 執行指令的按鈕'), () => btn(T('執行'), {}, act('cmds', { num: P.nextNum++ }))]] }),
+    h('div', { style: { marginTop: '10px' } }, exitToggle(d, T('底部放一顆離開按鈕'))));
+  else if (d.type === 'dialog_list') body = h('div', {},
+    row(T('列出'), h('div', {},
+      d.list.map((e, i) => h('div', { style: { display: 'flex', gap: '6px', margin: '3px 0' } },
+        fSel(e, 'ref', dlgOptions(true, T('（外部 ID…）'))),
+        e.ref ? null : fText(e, 'extId', { mono: true, ph: 'ns:id' }),
+        h('button', { class: 'ib del', onclick: () => { d.list.splice(i, 1); changed(true); } }, '✕'))),
+      h('button', { class: 'add', onclick: () => { d.list.push({ uid: uid(), ref: P.dialogs.find(x => x !== d)?.uid || '', extId: '' }); changed(true); } }, T('＋ 對話框'))),
+      T('每個對話框變成一顆按鈕，文字用它的外部標題（沒有就用標題）。')),
+    row(T('或用標籤'), fText(d, 'listTag', { mono: true, ph: T('例如 mymap:menus（填了就不用上面的清單）') })),
+    h('div', { class: 'grid2' }, row(T('欄數'), fNum(d, 'columns', { step: 1, min: 1, def: 2 })), row(T('按鈕寬度'), fNum(d, 'bw', { step: 1, min: 1, max: 1024, def: 150 }))),
+    exitToggle(d, T('底部放一顆離開按鈕')));
+  else body = h('div', {},
+    h('div', { class: 'help' }, T('連結內容由伺服器的 server.properties／外掛提供，這裡只設定版面。')),
+    h('div', { class: 'grid2' }, row(T('欄數'), fNum(d, 'columns', { step: 1, min: 1, def: 2 })), row(T('按鈕寬度'), fNum(d, 'bw', { step: 1, min: 1, max: 1024, def: 150 }))),
+    exitToggle(d, T('底部放一顆離開按鈕')));
+  const n = d.type === 'multi_action' ? T('{0} 顆', d.actions.length) : '';
+  return card('buttons', T('按鈕'), body, h('span', { class: 'cnt' }, n));
+}
+
+/* =====================================================================
+   流程圖
+   ===================================================================== */
+function renderFlow() {
+  // 心智圖式：只畫樹狀主幹（每個對話框從第一次被開啟的地方長出來），
+  // 回頭、開回自己、跳到別的分支都改成方塊裡的小標籤，不拉長線（2026-11-26 使用者：「線無論怎樣都要理好，最好類似心智圖」）
+  const box = $('#midBody'); box.innerHTML = '';
+  if (!P.dialogs.length) { box.append(h('div', { class: 'empty' }, T('還沒有對話框。'))); return; }
+  const links = [];
+  for (const d of P.dialogs) {
+    for (const b of allButtons(d)) for (const { t, k } of linkTargets(b.act)) links.push({ f: d.uid, t: t.uid, k, l: plain(b.label) });
+    if (d.type === 'dialog_list') for (const e of d.list) { const t = getDlg(e.ref) || findById(e.extId); if (t) links.push({ f: d.uid, t: t.uid, k: 'list', l: plain(hasText(t.ext) ? t.ext : t.title) }); }
+  }
+  // 1) 生成樹：從起始對話框照按鈕順序走
+  const parent = {}, kids = {}, seen = new Set(), roots = [];
+  for (const r of [P.startUid, ...P.dialogs.map(d => d.uid)].filter(u => u && getDlg(u))) {
+    if (seen.has(r)) continue;
+    roots.push(r); seen.add(r); const q = [r];
+    while (q.length) {
+      const u = q.shift(); kids[u] = kids[u] || [];
+      for (const l of links) if (l.f === u && !seen.has(l.t)) { seen.add(l.t); parent[l.t] = u; kids[u].push(l.t); q.push(l.t); }
+    }
+  }
+  // 2) 分組：主幹的線（父→子）與小標籤（其他連結）
+  const short = s => s.length > 12 ? s.slice(0, 12) + '…' : s;
+  const trunk = {}, chips = {};
+  const isAncestor = (a, u) => { for (let p = parent[u]; p; p = parent[p]) if (p === a) return true; return false; };
+  for (const l of links) {
+    if (l.f !== l.t && parent[l.t] === l.f) {
+      const key = l.f + '>' + l.t + '>' + l.k;
+      const g = trunk[key] = trunk[key] || { f: l.f, t: l.t, k: l.k, labels: [] };
+      if (l.l && !g.labels.includes(short(l.l))) g.labels.push(short(l.l));
+    } else {
+      const arr = chips[l.f] = chips[l.f] || [];
+      let c = arr.find(x => x.t === l.t && x.k === l.k);
+      if (!c) arr.push(c = { t: l.t, k: l.k, labels: [], icon: l.t === l.f ? '↻' : isAncestor(l.t, l.f) ? '↩' : '→' });
+      if (l.l && !c.labels.includes(l.l)) c.labels.push(l.l);
+    }
+  }
+  // 3) 版面：子項目上下排開，父項目對齊子項目的中間
+  const W = 210, GX = 170, GY = 18, CH = 17, pos = {}, sub = {};
+  const nodeH = u => 48 + (chips[u] ? chips[u].length * CH + 4 : 0);
+  const measure = u => {
+    const ch = kids[u] || []; let s = 0;
+    ch.forEach((c, i) => { s += measure(c) + (i ? GY : 0); });
+    return sub[u] = Math.max(nodeH(u), s);
+  };
+  const place = (u, depth, top) => {
+    const ch = kids[u] || [], nh = nodeH(u); let y = top;
+    if (ch.length) {
+      const total = ch.reduce((s, c, i) => s + sub[c] + (i ? GY : 0), 0);
+      let cy = top + Math.max(0, (sub[u] - total) / 2);
+      for (const c of ch) { place(c, depth + 1, cy); cy += sub[c] + GY; }
+      const a = pos[ch[0]], b = pos[ch[ch.length - 1]];
+      y = Math.max(top, (a.y + a.h / 2 + b.y + b.h / 2) / 2 - nh / 2);
+    }
+    pos[u] = { x: 20 + depth * (W + GX), y, h: nh, d: depth };
+  };
+  let top = 20;
+  for (const r of roots) { measure(r); place(r, 0, top); top += sub[r] + GY * 2; }
+  const maxD = Math.max(...Object.values(pos).map(p => p.d));
+  const SW = 40 + (maxD + 1) * W + maxD * GX, SH = top;
+  const NS = 'http://www.w3.org/2000/svg';
+  const sv = (t, a, ...k) => { const e = document.createElementNS(NS, t); for (const x in a) e.setAttribute(x, a[x]); k.forEach(c => e.append(c)); return e; };
+  const svg = sv('svg', { width: SW, height: SH, viewBox: `0 0 ${SW} ${SH}` });
+  const col = { show: '#58b8ff', cmd: '#ffa04a', list: '#9aa1b0' };
+  // 主幹
+  const pairN = {};
+  for (const e of Object.values(trunk)) {
+    const a = pos[e.f], b = pos[e.t];
+    const pk = e.f + '>' + e.t, off = (pairN[pk] = (pairN[pk] ?? -1) + 1) * 6;
+    const x1 = a.x + W, y1 = a.y + a.h / 2 + off, x2 = b.x, y2 = b.y + 24 + off;
+    svg.append(sv('path', { d: `M${x1},${y1} C${x1 + GX / 2},${y1} ${x2 - GX / 2},${y2} ${x2},${y2}`, fill: 'none', stroke: col[e.k], 'stroke-width': 1.8, 'stroke-dasharray': e.k === 'cmd' ? '5 4' : '', opacity: .9 }));
+    svg.append(sv('circle', { cx: x2, cy: y2, r: 3, fill: col[e.k] }));
+    if (e.labels.length) {
+      const lines = e.labels.length > 3 ? [...e.labels.slice(0, 2), T('…還有 {0} 顆', e.labels.length - 2)] : e.labels;
+      const t = sv('text', { 'text-anchor': 'end', class: 'el' });
+      lines.forEach((l, i) => { const s = sv('tspan', { x: x2 - 8, y: y2 - 6 - (lines.length - 1 - i) * 13 }); s.textContent = l; t.append(s); });
+      svg.append(t);
+    }
+  }
+  // 方塊與小標籤
+  for (const d of P.dialogs) {
+    const p = pos[d.uid]; if (!p) continue;
+    const g = sv('g', { class: 'node' + (d.uid === curUid ? ' on' : '') + (d.uid === P.startUid ? ' start' : ''), transform: `translate(${p.x},${p.y})` });
+    g.append(sv('rect', { width: W, height: p.h, rx: 8 }));
+    const t1 = sv('text', { x: 12, y: 21 }); const tt = (P.startUid === d.uid ? '★ ' : '') + TYPES[d.type].i + ' ' + (plain(d.title) || T('（無標題）')); t1.textContent = tt.length > 17 ? tt.slice(0, 17) + '…' : tt;
+    const t2 = sv('text', { x: 12, y: 39, class: 'nid' }); t2.textContent = d.id;
+    g.append(t1, t2);
+    (chips[d.uid] || []).forEach((c, i) => {
+      const tgt = getDlg(c.t);
+      let s = c.icon + ' ' + c.labels.join('、');
+      if (c.icon !== '↻') s += ' → ' + tgt.id;
+      if (s.length > 26) s = s.slice(0, 25) + '…';
+      const ct = sv('text', { x: 12, y: 58 + i * CH, class: 'chipt', fill: col[c.k] }); ct.textContent = s;
+      const tip = sv('title', {}); tip.textContent = c.labels.join('、') + ' → ' + tgt.id; ct.append(tip);
+      ct.addEventListener('click', ev => { ev.stopPropagation(); curUid = c.t; pvReset(); renderAll(); });
+      g.append(ct);
+    });
+    g.addEventListener('click', () => { curUid = d.uid; pvReset(); renderAll(); });
+    g.addEventListener('dblclick', () => { curUid = d.uid; tab = 'edit'; pvReset(); renderAll(); });
+    svg.append(g);
+  }
+  box.append(
+    h('div', { class: 'help', style: { marginBottom: '8px' } }, h('span', { style: { color: '#58b8ff' } }, T('━ 直接開啟')), T('　'), h('span', { style: { color: '#ffa04a' } }, T('┅ 執行指令後開啟')), T('　'), h('span', { style: { color: '#9aa1b0' } }, T('━ 清單')), T('　點一下選取、按兩下編輯。')),
+    h('div', { class: 'help', style: { marginBottom: '8px' } }, T('方塊裡的小標籤：↩ 回到前面　↻ 開回自己　→ 跳到別的分支（點一下跳過去）')),
+    h('div', { id: 'flow', style: { overflow: 'auto' } }, svg));
+}
+
+/* =====================================================================
+   JSON 分頁、專案設定分頁
+   ===================================================================== */
+function copyBtn(label, getText) { return h('button', { class: 'tb', onclick: async () => { try { await navigator.clipboard.writeText(getText()); toast(T('已複製')); } catch { toast(T('複製失敗，請手動選取'), true); } } }, label); }
+function renderJSONTab() {
+  const box = $('#midBody'); box.innerHTML = '';
+  const d = curDlg(); if (!d) { box.append(h('div', { class: 'empty' }, T('沒有選取對話框。'))); return; }
+  const json = JSON.stringify(dialogJSON(d), null, 2);
+  const ta = h('textarea', { class: 'code', rows: 6, placeholder: T('貼上一個 dialog JSON，按「取代」載入到這個對話框') });
+  box.append(
+    h('div', { class: 'card' }, h('div', { class: 'cb', style: { paddingTop: '12px' } },
+      h('div', { class: 'addbar', style: { marginTop: 0, marginBottom: '8px' } },
+        copyBtn(T('複製 JSON'), () => json),
+        copyBtn(T('複製「內嵌」指令'), () => showCmd(d)),
+        copyBtn(T('複製 /dialog show @s {0}:{1}', P.ns, d.id), () => `dialog show @s ${refOf(d)}`),
+        h('button', { class: 'tb', onclick: () => download(d.id.split('/').pop() + '.json', json) }, T('下載這個檔'))),
+      h('div', { class: 'help', html: T('放在 <code>data/{0}/dialog/{1}.json</code>。「內嵌」指令不用放檔案就能直接在聊天欄或指令方塊測試（但裡面開啟其他對話框的按鈕仍需要資料包）。', esc(P.ns), esc(d.id)) }),
+      h('pre', { class: 'json' }, json))),
+    card('jsonimp', T('用 JSON 取代這個對話框'), h('div', {}, ta,
+      h('div', { class: 'addbar' }, h('button', { class: 'tb', onclick: () => {
+        try { const j = JSON.parse(ta.value); const nd = importDialog(j, d.id); nd.uid = d.uid; Object.assign(d, nd); relinkRefs(); changed(true); toast(T('已載入')); }
+        catch (e) { toast(T('JSON 格式錯誤：') + e.message, true); }
+      } }, T('取代'))))));
+}
+function renderProjTab() {
+  const box = $('#midBody'); box.innerHTML = '';
+  const vers = [['121', T('26.3（121）')], ['88', T('1.21.9～1.21.10（88）')], ['81', T('1.21.7～1.21.8（81）')], ['80', T('1.21.6（80）')], ['custom', T('自訂…')]];
+  const cur = { v: !renderProjTab.custom && P.packMin === P.packMax && vers.some(x => x[0] === String(P.packMin)) ? String(P.packMin) : 'custom' };
+  box.append(
+    card('pj1', T('資料包'), h('div', {},
+      row(T('名稱'), fText(P, 'name')),
+      row(T('命名空間'), fText(P, 'ns', { mono: true, clean: v => v.toLowerCase().replace(/[^a-z0-9_.\-]/g, '_') }), T('所有對話框的 ID 前綴，例如 <code>mymap:main_menu</code>。')),
+      row(T('說明'), fText(P, 'desc', { ph: T('顯示在資料包清單裡') })),
+      row(T('遊戲版本'), fSel(cur, 'v', vers, { w: '260px', on: v => { renderProjTab.custom = v === 'custom'; if (v !== 'custom') P.packMin = P.packMax = Number(v); } })),
+      cur.v === 'custom' ? h('div', { class: 'grid2' }, row(T('最低格式'), fNum(P, 'packMin', { step: 'any' })), row(T('最高格式'), fNum(P, 'packMax', { step: 'any' }))) : null,
+      h('div', { class: 'help' }, T('對話框從 1.21.6 開始才有。格式號碼對不上時遊戲只會顯示「為舊版／新版製作」，仍可載入。')))),
+    card('pj2', T('指令按鈕（trigger）'), h('div', {},
+      row(T('計分板'), fText(P, 'trigObj', { mono: true, ph: (P.ns || 'mymap') + '.dlg' }), T('「執行指令」按鈕共用這個 trigger 計分板，每顆按鈕一個編號。')),
+      row(T('額外計分板'), fText(P, 'extraObjs', { mono: true, ph: T('例如 mymap.diff mymap.vol（空白分隔）') }), T('會自動建立成 trigger 並每 tick 對所有人 enable，給「設定 trigger」或「帶入輸入值」的按鈕用；偵測分數的邏輯要你自己寫。')),
+      row('', fChk(P, 'openFns', T('產生開啟函數（function ns:open/<ID>）'))),
+      h('div', { class: 'help', html: allCmdButtons().length ? T('目前的指令按鈕：<br>') + allCmdButtons().map(({ d, b }) => T('#{0}　{1}　「{2}」', b.act.num, esc(d.id), esc(plain(b.label)))).join('<br>') : T('目前沒有「執行指令」按鈕。') }))),
+    card('pj3', T('預覽'), h('div', {},
+      row('', fChk(P, 'itemIcons', T('從 mcasset.cloud 載入原版物品圖示（離線時顯示代號）')))))
+  );
+}
+
+/* =====================================================================
+   預覽：模擬 Minecraft 的對話框畫面
+   ===================================================================== */
+const U = 3; // 內部倍率：1 GUI 像素 = 3 CSS 像素，再整體縮放到預覽區
+const g = n => (n * U) + 'px';
+let pv = { stack: [], closed: false, waiting: false, vals: {} };
+function pvReset() { pv = { stack: curUid ? [curUid] : [], closed: false, waiting: false, vals: {} }; }
+function pvCur() { return getDlg(pv.stack[pv.stack.length - 1]); }
+// 開到路徑上已經有的對話框（返回、開回自己）就退回那一層，路徑不會一直堆長
+function pvOpen(u) { const i = pv.stack.indexOf(u); if (i >= 0) pv.stack.length = i + 1; else pv.stack.push(u); if (pv.stack.length > 50) pv.stack.shift(); pv.closed = false; pv.waiting = false; delete pv.vals[u]; renderPreview(); }
+function log(cls, msg) { const lg = $('#lg'); lg.append(h('div', { class: cls }, msg)); lg.scrollTop = lg.scrollHeight; }
+function shadowOf(hex) {
+  const m = /^#?([0-9a-f]{2})([0-9a-f]{2})([0-9a-f]{2})$/i.exec(hex); if (!m) return 'rgba(0,0,0,.75)';
+  return `rgb(${[1, 2, 3].map(i => Math.floor(parseInt(m[i], 16) / 4)).join(',')})`;
+}
+function mcText(segs, base = '#FFFFFF', o = {}) {
+  const f = h('span', { class: 'mc-t' });
+  for (const s of segs || []) {
+    const col = colorCss(s.color) || base;
+    const txt = s.translate && !s.text ? s.translate : s.text;
+    const sp = h('span', { style: { color: col, textShadow: o.noShadow ? 'none' : `${g(1)} ${g(1)} 0 ${shadowOf(col)}`, fontWeight: s.bold ? '700' : null, fontStyle: s.italic ? 'italic' : null, textDecoration: [s.underlined && 'underline', s.strikethrough && 'line-through'].filter(Boolean).join(' ') || null, cursor: s.clickType ? 'pointer' : null } }, txt);
+    if (s.obfuscated) { sp.classList.add('obf'); sp.dataset.len = txt.length; }
+    if (s.hover && o.clickable) tipOn(sp, () => [seg(s.hover)]);
+    if (s.clickType && o.clickable) sp.addEventListener('click', e => { e.stopPropagation(); textClick(s); });
+    f.append(sp);
+  }
+  return f;
+}
+function textClick(s) {
+  const v = s.clickValue;
+  if (s.clickType === 'show_dialog') { const t = findById(v); log('u', T('開啟對話框 {0}', v)); if (t) pvOpen(t.uid); return; }
+  if (s.clickType === 'run_command') { log('c', v); const t = cmdDialogRefs(v)[0]; if (t) pvOpen(t.uid); return; }
+  log('u', { open_url: T('開啟網址 '), suggest_command: T('填入聊天欄 '), copy_to_clipboard: T('複製 ') }[s.clickType] + v);
+}
+// 物品名稱（預覽用）
+const itemName = id => (id || '').replace(/^minecraft:/, '').replace(/_/g, ' ');
+function mcButton(b, w, onClick, o = {}) {
+  const e = h('div', { class: 'mc-btn' + (o.off ? ' off' : ''), style: { width: g(w), height: g(20), borderWidth: g(1), boxShadow: `inset ${g(1)} ${g(1)} 0 #a9a9a9, inset ${g(-1)} ${g(-2)} 0 #4a4a4a` } },
+    h('span', { style: { maxWidth: g(w - 8), overflow: 'hidden', textOverflow: 'clip' } }, o.textNode || mcText(b.label)));
+  if (b && hasText(b.tooltip)) tipOn(e, () => b.tooltip);
+  if (!o.off) e.addEventListener('click', onClick);
+  return e;
+}
+let tipEl = null;
+// 最後的游標位置：預覽重畫後新按鈕剛好在游標底下時，提示框要馬上擺對位置（不然會卡在左上角）
+const lastMouse = { x: 0, y: 0 };
+document.addEventListener('mousemove', e => { lastMouse.x = e.clientX; lastMouse.y = e.clientY; }, true);
+function tipOn(el, getSegs) {
+  el.addEventListener('mouseenter', e => {
+    const scr = $('#scr'); tipEl?.remove();
+    tipEl = h('div', { class: 'mc-tip', style: { padding: `${g(3)} ${g(4)}`, borderWidth: g(1), fontSize: g(8), lineHeight: g(10) } }, mcText(getSegs()));
+    scr.append(tipEl);
+    placeTip(e.clientX || lastMouse.x, e.clientY || lastMouse.y);
+  });
+  el.addEventListener('mousemove', e => placeTip(e.clientX, e.clientY));
+  el.addEventListener('mouseleave', () => { tipEl?.remove(); tipEl = null; });
+  function placeTip(cx, cy) {
+    if (!tipEl) return;
+    const scr = $('#scr'), r = scr.getBoundingClientRect(), sc = r.width / scr.offsetWidth;
+    let x = (cx - r.left) / sc + 12 * U, y = (cy - r.top) / sc - 12 * U;
+    const tw = tipEl.offsetWidth, th = tipEl.offsetHeight;
+    if (x + tw > scr.offsetWidth) x = Math.max(0, x - tw - 24 * U);
+    if (y + th > scr.offsetHeight) y = scr.offsetHeight - th;
+    tipEl.style.left = x + 'px'; tipEl.style.top = Math.max(0, y) + 'px';
+  }
+}
+function inputVal(d, x) {
+  const vals = pv.vals[d.uid] = pv.vals[d.uid] || {};
+  if (!(x.key in vals)) {
+    if (x.kind === 'text') vals[x.key] = x.initial || '';
+    if (x.kind === 'boolean') vals[x.key] = !!x.initialB;
+    if (x.kind === 'single_option') vals[x.key] = Math.max(0, x.options.findIndex(o => o.initial));
+    if (x.kind === 'number_range') vals[x.key] = x.initialN !== '' && x.initialN != null ? Number(x.initialN) : snapNum(x, (Number(x.start) + Number(x.end)) / 2);
+  }
+  return vals[x.key];
+}
+function snapNum(x, v) {
+  const lo = Math.min(x.start, x.end), hi2 = Math.max(x.start, x.end);
+  if (Number(x.step) > 0) v = Number(x.start) + Math.round((v - x.start) / x.step) * x.step;
+  return Math.min(hi2, Math.max(lo, +v.toFixed(6)));
+}
+function fmtNum(v) { return Number.isInteger(v) ? String(v) : String(+v.toFixed(4)); }
+function inputStr(d, x) {
+  const v = inputVal(d, x);
+  if (x.kind === 'boolean') return v ? x.onTrue : x.onFalse;
+  if (x.kind === 'single_option') return x.options[v]?.id ?? '';
+  if (x.kind === 'number_range') return fmtNum(v);
+  return v;
+}
+function renderInput(d, x) {
+  const w = Number(x.width) || 200;
+  const lab = x.labelVisible !== false ? mcText(x.label) : null;
+  if (x.kind === 'text') {
+    const multi = x.multiline;
+    const hgt = multi ? (Number(x.mHeight) || Math.min(512, 9 * (Number(x.maxLines) || 4) + 8)) : 20;
+    const el = h(multi ? 'textarea' : 'input', { class: 'mc-edit', maxlength: x.maxLength || 32, style: { width: g(w), height: g(hgt), borderWidth: g(1), padding: `${g(multi ? 4 : 0)} ${g(4)}`, fontSize: g(8), resize: 'none' } });
+    el.value = inputVal(d, x);
+    el.addEventListener('input', () => { pv.vals[d.uid][x.key] = el.value; });
+    el.addEventListener('keydown', e => e.stopPropagation());
+    return h('div', { class: 'mc-col', style: { gap: g(4) } }, lab, el);
+  }
+  if (x.kind === 'boolean') {
+    const v = inputVal(d, x);
+    const e = h('div', { class: 'mc-check', style: { gap: g(4) } }, h('div', { class: 'mc-box', style: { width: g(17), height: g(17), borderWidth: g(1), fontSize: g(12) } }, v ? '✔' : ''), mcText(x.label));
+    e.addEventListener('click', () => { pv.vals[d.uid][x.key] = !v; renderPreview(); });
+    return e;
+  }
+  if (x.kind === 'single_option') {
+    const i = inputVal(d, x), op = x.options[i];
+    const optSegs = op ? (hasText(op.display) ? op.display : [seg(op.id)]) : [seg('?')];
+    const node = h('span', {}, lab ? [mcText(x.label), mcText([seg(': ')])] : null, mcText(optSegs));
+    return mcButton(null, w, e => { const n = x.options.length; if (!n) return; pv.vals[d.uid][x.key] = (i + (e.shiftKey ? n - 1 : 1)) % n; renderPreview(); }, { textNode: node });
+  }
+  if (x.kind === 'number_range') {
+    const v = inputVal(d, x);
+    const lo = Math.min(x.start, x.end), hi2 = Math.max(x.start, x.end);
+    const frac = hi2 > lo ? (v - lo) / (hi2 - lo) : 0;
+    const knob = h('div', { class: 'knob', style: { width: g(8), left: `calc(${frac} * (100% - ${g(8)}))`, borderWidth: g(1), boxShadow: `inset ${g(1)} ${g(1)} 0 #c6c6c6, inset ${g(-1)} ${g(-2)} 0 #555` } });
+    const lbl = h('div', { class: 'sl' }, mcText([...x.label, seg(': ' + fmtNum(v))]));
+    const rng = h('input', { type: 'range', min: lo, max: hi2, step: Number(x.step) > 0 ? x.step : 'any', value: v });
+    rng.addEventListener('input', () => { const nv = snapNum(x, Number(rng.value)); pv.vals[d.uid][x.key] = nv; const f2 = hi2 > lo ? (nv - lo) / (hi2 - lo) : 0; knob.style.left = `calc(${f2} * (100% - ${g(8)}))`; lbl.replaceChildren(mcText([...x.label, seg(': ' + fmtNum(nv))])); });
+    return h('div', { class: 'mc-slider', style: { width: g(w), height: g(20), borderWidth: g(1) } }, knob, lbl, rng);
+  }
+}
+function itemIcon(b) {
+  const w = Number(b.width) || 16, ht = Number(b.height) || 16;
+  const slot = h('div', { class: 'mc-slot', style: { width: g(w + 2), height: g(ht + 2), borderWidth: g(1) } });
+  const id = (b.id || '').replace(/^minecraft:/, '');
+  const ph = h('span', { class: 'ph', style: { fontSize: g(Math.min(w, ht) / 2) } }, id.slice(0, 2).toUpperCase());
+  if (P.itemIcons && /^[a-z0-9_]+$/.test(id) && !(b.id || '').includes(':') || (P.itemIcons && (b.id || '').startsWith('minecraft:'))) {
+    const img = h('img', { src: `https://assets.mcasset.cloud/latest/assets/minecraft/textures/item/${id}.png`, alt: '' });
+    img.onerror = () => { if (!img.dataset.b) { img.dataset.b = 1; img.src = `https://assets.mcasset.cloud/latest/assets/minecraft/textures/block/${id}.png`; } else img.replaceWith(ph); };
+    slot.append(img);
+  } else slot.append(ph);
+  if (b.deco && Number(b.count) > 1) slot.append(h('span', { class: 'ct', style: { fontSize: g(8), textShadow: `${g(1)} ${g(1)} 0 #3f3f3f` } }, b.count));
+  if (b.tip) tipOn(slot, () => [seg(itemName(b.id)), ...(b.components ? [seg('\n' + b.id, { color: 'dark_gray' })] : [])]);
+  return slot;
+}
+function renderBody(d, b) {
+  if (b.kind === 'plain') return h('div', { style: { width: g(Number(b.width) || 200), textAlign: 'center' } }, mcText(b.contents, '#FFFFFF', { clickable: true }));
+  const row2 = h('div', { style: { display: 'flex', alignItems: 'center', gap: g(4) } }, itemIcon(b));
+  if (hasText(b.desc)) row2.append(h('div', { style: { width: g(Number(b.descWidth) || 200) } }, mcText(b.desc, '#FFFFFF', { clickable: true })));
+  return row2;
+}
+function pressButton(d, b, isExit) {
+  const a = b ? b.act : act();
+  let next = null;
+  const cmdOut = c => { log('c', c); const t = cmdDialogRefs(c)[0]; if (t && !next) next = t; };
+  switch (a.kind) {
+    case 'none': if (isExit) log('n', T('（離開）')); break;
+    case 'show_dialog': { const t = getDlg(a.target) || findById(a.extId); log('u', T('開啟對話框 {0}', t ? refOf(t) : a.extId)); if (t) { pvOpen(t.uid); return; } break; }
+    case 'cmds': {
+      log('n', T('/trigger {0} set {1}　→ 資料包執行：', trigObj(), a.num));
+      a.commands.split('\n').map(s => s.trim().replace(/^\//, '')).filter(s => s && !s.startsWith('#')).forEach(c => cmdOut('  ' + c));
+      const t = getDlg(a.thenOpen); if (t) next = t; break;
+    }
+    case 'trigger': log('c', `/trigger ${a.objective || trigObj()} set ${a.value}`); break;
+    case 'run_command': cmdOut(a.command); break;
+    case 'suggest_command': log('u', T('聊天欄填入：{0}', a.command)); break;
+    case 'open_url': log('u', T('開啟網址：{0}', a.url)); break;
+    case 'copy': log('u', T('複製到剪貼簿：{0}', a.command)); break;
+    case 'custom': log('u', T('自訂封包 {0} {1}', a.cid, a.payload || '')); break;
+    case 'dyn_run': {
+      const cmd = (a.template || '').replace(/\$\(([^)]*)\)/g, (m, k) => { const x = d.inputs.find(i => i.key === k); return x ? inputStr(d, x) : m; });
+      cmdOut(cmd); break;
+    }
+    case 'dyn_custom': {
+      const o = {}; d.inputs.forEach(x => o[x.key] = inputStr(d, x));
+      log('u', T('自訂封包 {0} {1}', a.cid, JSON.stringify(Object.assign(o, tryParse(a.payload) || {})))); break;
+    }
+  }
+  if (next) { pvOpen(next.uid); return; }
+  if (d.after === 'close' || isExit) { pv.closed = true; renderPreview(); }
+  else if (d.after === 'wait_for_response') { pv.waiting = true; renderPreview(); }
+}
+function fitPreview() {
+  const [W, H] = $('#pvSize').value.split('x').map(Number);
+  const wrap = $('#pvWrap'), box = $('#pvBox'), scr = $('#scr');
+  const aw = wrap.clientWidth - 20, ah = wrap.clientHeight - 20;
+  const s = Math.max(0.1, Math.min(aw / (W * U), ah / (H * U)));
+  scr.style.width = (W * U) + 'px'; scr.style.height = (H * U) + 'px'; scr.style.transform = `scale(${s})`;
+  box.style.width = (W * U * s) + 'px'; box.style.height = (H * U * s) + 'px';
+}
+function renderPreview() {
+  const scr = $('#scr'); scr.innerHTML = ''; tipEl = null;
+  scr.style.fontSize = g(8); scr.style.lineHeight = g(9);
+  fitPreview();
+  scr.append(h('div', { class: 'mc-world' }));
+  const d = pvCur();
+  $('#pvCrumb').textContent = pv.stack.map(u => getDlg(u)?.id || '?').join(' › ');
+  $('#pvBack').disabled = pv.stack.length < 2;
+  if (!d) { scr.append(h('div', { class: 'mc-closed', style: { fontSize: g(10) } }, T('（沒有對話框）'))); return; }
+  if (pv.closed) {
+    scr.append(h('div', { class: 'mc-closed', style: { gap: g(8) } }, h('div', { style: { fontSize: g(9), textShadow: `${g(1)} ${g(1)} 0 #000` } }, T('對話框已關閉，回到遊戲')),
+      mcButton({ label: [seg(T('重新開啟'))], tooltip: [] }, 100, () => { pv.closed = false; pv.vals = {}; renderPreview(); })));
+    return;
+  }
+  scr.append(h('div', { class: 'mc-dim' }));
+  const HEAD = 33, FOOT = 33;
+  scr.append(h('div', { class: 'mc-head', style: { height: g(HEAD) } }, mcText(d.title)));
+  if (d.pause) scr.append(h('div', { class: 'mc-tag', style: { fontSize: g(6), padding: g(3) } }, T('⏸ 暫停')));
+  scr.append(h('div', { class: 'mc-sep', style: { top: g(HEAD - 2), height: g(2) } }));
+  scr.append(h('div', { class: 'mc-sep', style: { bottom: g(FOOT - 2), height: g(2) } }));
+  const body = h('div', { class: 'mc-body', style: { top: g(HEAD), bottom: g(FOOT) } });
+  const col = h('div', { class: 'mc-col', style: { gap: g(10), padding: `${g(10)} ${g(4)}` } });
+  d.body.forEach(b => col.append(renderBody(d, b)));
+  d.inputs.forEach(x => col.append(renderInput(d, x)));
+  // 主要按鈕格
+  const grid = (items, cols, mk) => {
+    const gr = h('div', { style: { display: 'grid', gridTemplateColumns: `repeat(${Math.max(1, cols)}, auto)`, gap: `${g(2)} ${g(2)}`, justifyContent: 'center', justifyItems: 'center' } });
+    items.forEach(it => gr.append(mk(it))); return gr;
+  };
+  if (d.type === 'multi_action' && d.actions.length) col.append(grid(d.actions, Math.min(d.columns || 2, d.actions.length), b => mcButton(b, Number(b.width) || 150, () => pressButton(d, b))));
+  if (d.type === 'dialog_list') {
+    const items = d.listTag ? [{ tag: true }] : d.list;
+    col.append(grid(items, Math.min(d.columns || 2, items.length || 1), e => {
+      if (e.tag) return mcButton({ label: [seg('#' + d.listTag, { color: 'gray' })], tooltip: [] }, d.bw, () => log('n', T('（標籤 #{0} 的內容只在遊戲裡看得到）', d.listTag)));
+      const t = getDlg(e.ref);
+      const lab = t ? (hasText(t.ext) ? t.ext : t.title) : [seg(e.extId || '?', { color: 'gray' })];
+      return mcButton({ label: lab, tooltip: [] }, Number(d.bw) || 150, () => { log('u', T('開啟對話框 {0}', t ? refOf(t) : e.extId)); if (t) pvOpen(t.uid); });
+    }));
+  }
+  if (d.type === 'server_links') col.append(grid([1, 2], Math.min(d.columns || 2, 2), i => mcButton({ label: [seg(i === 1 ? T('伺服器網站') : T('回報問題'), { color: 'gray' })], tooltip: [seg(T('實際連結由伺服器提供'))] }, Number(d.bw) || 150, () => log('n', T('（伺服器連結）')))));
+  body.append(col); scr.append(body);
+  // 底部
+  const foot = h('div', { class: 'mc-foot', style: { height: g(FOOT), gap: g(8) } });
+  if (d.type === 'notice') foot.append(mcButton(d.notice, Number(d.notice.width) || 150, () => pressButton(d, d.notice)));
+  if (d.type === 'confirmation') foot.append(mcButton(d.yes, Number(d.yes.width) || 150, () => pressButton(d, d.yes)), mcButton(d.no, Number(d.no.width) || 150, () => pressButton(d, d.no)));
+  if (['multi_action', 'dialog_list', 'server_links'].includes(d.type) && d.exit) foot.append(mcButton(d.exit, Number(d.exit.width) || 150, () => pressButton(d, d.exit, true)));
+  scr.append(foot);
+  if (pv.waiting) scr.append(h('div', { class: 'mc-wait', style: { fontSize: g(9) } }, T('等待伺服器回應…')));
+}
+function pvEsc() {
+  const d = pvCur(); if (!d || pv.closed) return;
+  if (!d.esc) { log('n', T('（這個對話框不能用 Esc 關閉）')); return; }
+  log('n', 'Esc');
+  if (d.exit && ['multi_action', 'dialog_list', 'server_links'].includes(d.type)) pressButton(d, d.exit, true);
+  else if (d.type === 'confirmation') pressButton(d, d.no, true);
+  else { pv.closed = true; renderPreview(); }
+}
+// 亂碼字動畫
+const OBF = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789#$%&@';
+setInterval(() => document.querySelectorAll('#scr .obf').forEach(s => { let t = ''; for (let i = 0; i < +s.dataset.len; i++) t += OBF[Math.random() * OBF.length | 0]; s.textContent = t; }), 80);
+
+/* =====================================================================
+   資料包匯出（ZIP，不壓縮，自己寫的打包器）
+   ===================================================================== */
+const CRC = (() => { const t = new Uint32Array(256); for (let n = 0; n < 256; n++) { let c = n; for (let k = 0; k < 8; k++) c = c & 1 ? 0xEDB88320 ^ (c >>> 1) : c >>> 1; t[n] = c >>> 0; } return t; })();
+function crc32(b) { let c = 0xFFFFFFFF; for (let i = 0; i < b.length; i++) c = CRC[(c ^ b[i]) & 0xFF] ^ (c >>> 8); return (c ^ 0xFFFFFFFF) >>> 0; }
+function makeZip(files) {
+  const enc = new TextEncoder(), parts = [], cent = []; let off = 0;
+  const now = new Date();
+  const time = (now.getHours() << 11) | (now.getMinutes() << 5) | (now.getSeconds() >> 1);
+  const date = ((now.getFullYear() - 1980) << 9) | ((now.getMonth() + 1) << 5) | now.getDate();
+  for (const f of files) {
+    const name = enc.encode(f.name), data = typeof f.data === 'string' ? enc.encode(f.data) : f.data, crc = crc32(data);
+    const lh = new DataView(new ArrayBuffer(30));
+    lh.setUint32(0, 0x04034b50, true); lh.setUint16(4, 20, true); lh.setUint16(6, 0x0800, true); lh.setUint16(8, 0, true);
+    lh.setUint16(10, time, true); lh.setUint16(12, date, true); lh.setUint32(14, crc, true);
+    lh.setUint32(18, data.length, true); lh.setUint32(22, data.length, true); lh.setUint16(26, name.length, true); lh.setUint16(28, 0, true);
+    parts.push(new Uint8Array(lh.buffer), name, data);
+    const ch = new DataView(new ArrayBuffer(46));
+    ch.setUint32(0, 0x02014b50, true); ch.setUint16(4, 20, true); ch.setUint16(6, 20, true); ch.setUint16(8, 0x0800, true); ch.setUint16(10, 0, true);
+    ch.setUint16(12, time, true); ch.setUint16(14, date, true); ch.setUint32(16, crc, true);
+    ch.setUint32(20, data.length, true); ch.setUint32(24, data.length, true); ch.setUint16(28, name.length, true);
+    ch.setUint32(42, off, true);
+    cent.push(new Uint8Array(ch.buffer), name);
+    off += 30 + name.length + data.length;
+  }
+  const csize = cent.reduce((s, p) => s + p.length, 0);
+  const end = new DataView(new ArrayBuffer(22));
+  end.setUint32(0, 0x06054b50, true); end.setUint16(8, files.length, true); end.setUint16(10, files.length, true);
+  end.setUint32(12, csize, true); end.setUint32(16, off, true);
+  return new Blob([...parts, ...cent, new Uint8Array(end.buffer)], { type: 'application/zip' });
+}
+function packMeta() {
+  const lo = Number(P.packMin) || 121, hi2 = Number(P.packMax) || lo;
+  const pack = { description: P.desc || T('{0}（Dialog 工坊產生）', P.name) };
+  if (hi2 < 82) pack.pack_format = Math.floor(hi2), lo !== hi2 && (pack.supported_formats = [Math.floor(lo), Math.floor(hi2)]);
+  else if (lo >= 82) { pack.min_format = lo; pack.max_format = hi2; }
+  else { pack.pack_format = Math.floor(lo); pack.supported_formats = [Math.floor(lo), Math.floor(hi2)]; pack.min_format = lo; pack.max_format = hi2; }
+  return JSON.stringify({ pack }, null, 2);
+}
+function buildFiles() {
+  const ns = P.ns, files = [], obj = trigObj();
+  files.push({ name: 'pack.mcmeta', data: packMeta() });
+  for (const d of P.dialogs) files.push({ name: `data/${ns}/dialog/${d.id}.json`, data: JSON.stringify(dialogJSON(d), null, 2) });
+  const tagP = P.dialogs.filter(d => d.tagPause).map(refOf), tagQ = P.dialogs.filter(d => d.tagQuick).map(refOf);
+  if (tagP.length) files.push({ name: 'data/minecraft/tags/dialog/pause_screen_additions.json', data: JSON.stringify({ values: tagP }, null, 2) });
+  if (tagQ.length) files.push({ name: 'data/minecraft/tags/dialog/quick_actions.json', data: JSON.stringify({ values: tagQ }, null, 2) });
+  if (P.openFns) for (const d of P.dialogs) files.push({ name: `data/${ns}/function/open/${d.id}.mcfunction`, data: T('# 開啟「{0}」\ndialog show @s {1}\n', plain(d.title), refOf(d)) });
+  const cmdBtns = allCmdButtons();
+  const extra = (P.extraObjs || '').split(/\s+/).filter(Boolean);
+  if (cmdBtns.length || extra.length) {
+    const objs = [...new Set([...(cmdBtns.length ? [obj] : []), ...extra])];
+    files.push({ name: 'data/minecraft/tags/function/load.json', data: JSON.stringify({ values: [`${ns}:dialog/load`] }, null, 2) });
+    files.push({ name: 'data/minecraft/tags/function/tick.json', data: JSON.stringify({ values: [`${ns}:dialog/tick`] }, null, 2) });
+    files.push({ name: `data/${ns}/function/dialog/load.mcfunction`, data: T('# Dialog 工坊：建立按鈕用的 trigger 計分板\n') + objs.map(o => `scoreboard objectives add ${o} trigger`).join('\n') + '\n' });
+    let tick = T('# 每 tick 讓所有人都能使用 trigger\n') + objs.map(o => `scoreboard players enable @a ${o}`).join('\n') + '\n';
+    if (cmdBtns.length) tick += T('# 有人按了「執行指令」按鈕\nexecute as @a[scores={{0}=1..}] at @s run function {1}:dialog/handle\n', obj, ns);
+    files.push({ name: `data/${ns}/function/dialog/tick.mcfunction`, data: tick });
+    if (cmdBtns.length) {
+      let hd = T('# 依按鈕編號分派（以按下的玩家身份執行）\nscoreboard players operation #btn {0} = @s {1}\nscoreboard players set @s {2} 0\n', obj, obj, obj);
+      for (const { d, b } of cmdBtns) {
+        hd += `execute if score #btn ${obj} matches ${b.act.num} run function ${ns}:dialog/btn/${b.act.num}\n`;
+        const lines = b.act.commands.split('\n').map(s => s.trim()).filter(Boolean).map(s => s.startsWith('#') ? s : s.replace(/^\//, ''));
+        const t = getDlg(b.act.thenOpen);
+        if (t) lines.push(`dialog show @s ${refOf(t)}`);
+        files.push({ name: `data/${ns}/function/dialog/btn/${b.act.num}.mcfunction`, data: T('# {0}「{1}」\n', d.id, plain(b.label)) + lines.join('\n') + '\n' });
+      }
+      files.push({ name: `data/${ns}/function/dialog/handle.mcfunction`, data: hd });
+    }
+  }
+  files.push({ name: 'README.txt', data: readme(cmdBtns) });
+  return files;
+}
+function readme(cmdBtns) {
+  const ns = P.ns;
+  let t = T('{0} — 由 Dialog 工坊產生的資料包\n\n安裝\n1. 把這個 zip 放進存檔的 datapacks 資料夾（或在建立世界時加入）。\n2. 「離開世界再重新進入」。對話框是在進入世界時登錄的，只打 /reload 不會出現新的對話框。\n3. 用 /dialog show @s {1}:<ID>{2} 打開。\n\n對話框\n', P.name, ns, P.openFns ? T(' 或 /function {0}:open/<ID>', ns) : '');
+  for (const d of P.dialogs) t += T('  {0}:{1}　{2}　{3}\n', ns, d.id, TYPES[d.type].n, plain(d.title));
+  if (cmdBtns.length) {
+    t += T('\n「執行指令」按鈕（trigger 計分板 {0}）\n', trigObj());
+    for (const { d, b } of cmdBtns) t += T('  #{0}　{1}「{2}」→ function {3}:dialog/btn/{4}\n', b.act.num, d.id, plain(b.label), ns, b.act.num);
+    t += T('\n按鈕的指令在 data/{0}/function/dialog/btn/ 裡，可以直接修改；重新從工坊匯出會覆蓋。\n', ns);
+  }
+  return t;
+}
+function exportModal() {
+  const ws = validate(), errs = ws.filter(w => w.lv === 'e');
+  const files = buildFiles();
+  modal(T('📦 匯出資料包'), h('div', {},
+    errs.length ? h('div', { class: 'warns' }, h('div', { class: 'e' }, T('有 {0} 個錯誤，匯出後遊戲可能載入失敗：', errs.length)), errs.slice(0, 8).map(w => h('div', { class: 'e' }, '✖ ' + (getDlg(w.uid)?.id ? getDlg(w.uid).id + T('：') : '') + w.m))) : h('div', { class: 'help', style: { marginBottom: '8px' } }, T('✔ 檢查通過。')),
+    h('div', { class: 'ftree' }, files.map(f => f.name).join('\n')),
+    h('div', { class: 'helpdoc' },
+      h('h3', {}, T('安裝方式')),
+      h('ol', {},
+        h('li', {}, T('把 zip 放進存檔的 '), h('code', {}, 'datapacks'), T(' 資料夾。')),
+        h('li', {}, h('b', {}, T('離開世界再重新進入')), T('（新的對話框只在進入世界時登錄，'), h('code', {}, '/reload'), T(' 不夠）。')),
+        h('li', {}, T('用 '), h('code', {}, `/dialog show @s ${P.ns}:${P.dialogs[0]?.id || 'ID'}`), T(' 打開。'))))),
+    [h('button', { class: 'tb', onclick: () => { download(T('{0}_dialogs_單檔.json', P.ns), JSON.stringify(Object.fromEntries(P.dialogs.map(d => [refOf(d), dialogJSON(d)])), null, 2)); } }, T('只下載全部 JSON')),
+     h('button', { class: 'tb pri', onclick: () => { download(`${P.ns}_dialogs.zip`, makeZip(files)); toast(T('已下載資料包')); } }, T('⬇ 下載 .zip'))]);
+}
+
+/* =====================================================================
+   對話視窗：專案、新增對話框、匯入、說明
+   ===================================================================== */
+function modal(title, body, foot) {
+  const m = $('#modal'); m.innerHTML = '';
+  m.append(h('div', { class: 'mbox' },
+    h('div', { class: 'mh' }, title, h('span', { class: 'sp' }), h('button', { class: 'ib', onclick: closeModal }, '✕')),
+    h('div', { class: 'mb' }, body),
+    foot ? h('div', { class: 'mf' }, foot) : null));
+  m.classList.add('on');
+}
+function closeModal() { $('#modal').classList.remove('on'); }
+$('#modal').addEventListener('mousedown', e => { if (e.target.id === 'modal') closeModal(); });
+
+function openProject(data) {
+  P = migrate(data); curUid = P.startUid || P.dialogs[0]?.uid || null;
+  hist = []; hi = -1; snap(); pvReset(); renderAll(); saveNow();
+}
+function migrate(p) {
+  const base = newProject(p.name || T('未命名'));
+  p = { ...base, ...p }; if (!p._id) p._id = uid();
+  let maxNum = 0;
+  for (const d of p.dialogs) for (const b of allButtonsRaw(d)) if (b.act?.kind === 'cmds') maxNum = Math.max(maxNum, b.act.num || 0);
+  p.nextNum = Math.max(p.nextNum || 1, maxNum + 1);
+  return p;
+}
+function allButtonsRaw(d) { return [d.notice, d.yes, d.no, d.exit, ...(d.actions || [])].filter(Boolean); }
+function projModal() {
+  const all = loadAll();
+  const list = Object.entries(all).sort((a, b) => b[1].t - a[1].t);
+  modal(T('📁 專案'), h('div', {},
+    h('div', { style: { fontWeight: 600, marginBottom: '4px' } }, T('新專案')),
+    h('div', { class: 'tpl' },
+      TEMPLATES.map(tp => h('button', { onclick: () => { saveNow(); openProject(tp.make()); closeModal(); toast(T('已建立「') + P.name + T('」')); } }, h('b', {}, tp.n), h('span', {}, tp.d)))),
+    h('div', { style: { display: 'flex', alignItems: 'center', marginBottom: '6px' } }, h('b', { style: { flex: 1 } }, T('存在這個瀏覽器的專案')), h('button', { class: 'tb', onclick: () => $('#fileProj').click() }, T('📂 開啟專案檔…'))),
+    h('div', { class: 'plist' }, list.length ? list.map(([id, e]) => h('div', { class: 'pitem' + (id === P._id ? ' on' : '') },
+      h('div', { class: 'tx' }, h('div', {}, e.name, id === P._id ? h('span', { class: 'badge g', style: { marginLeft: '6px' } }, T('編輯中')) : null), h('small', {}, T('{0} 個對話框・{1}', e.data.dialogs.length, new Date(e.t).toLocaleString(LANG)))),
+      id === P._id ? null : h('button', { class: 'tb', onclick: () => { saveNow(); openProject(e.data); closeModal(); } }, T('開啟')),
+      h('button', { class: 'ib', title: T('複製一份'), onclick: () => { const c = clone(e.data); c._id = uid(); c.name += T('（副本）'); const a2 = loadAll(); a2[c._id] = { name: c.name, t: Date.now(), data: c }; saveAll(a2); projModal(); } }, '⧉'),
+      h('button', { class: 'ib', title: T('下載專案檔'), onclick: () => download(`${e.name}.dlgproj.json`, JSON.stringify(e.data, null, 1)) }, '💾'),
+      h('button', { class: 'ib del', title: T('刪除'), onclick: () => {
+        if (!confirm(T('刪除專案「{0}」？這個動作不能復原（建議先下載專案檔備份）。', e.name))) return;
+        const a2 = loadAll(); delete a2[id]; saveAll(a2);
+        if (id === P._id) { const rest = Object.values(a2).sort((a, b) => b.t - a.t); openProject(rest[0]?.data || TEMPLATES[0].make()); }
+        projModal();
+      } }, '✕'))) : h('div', { class: 'help' }, T('（沒有）'))),
+    h('p', { class: 'help', style: { marginTop: '12px' } }, T('專案自動存在這個瀏覽器（清除網站資料就會不見）。要換電腦或備份，請用「💾 儲存成檔案」下載 .dlgproj.json。'))));
+}
+function addDialogPicker() {
+  modal(T('＋ 新增對話框'), h('div', {},
+    h('div', { class: 'typepick' }, Object.entries(TYPES).map(([k, v]) => h('button', { onclick: () => { addDialog(k); closeModal(); } }, h('span', { class: 'ic' }, v.i), h('div', {}, h('b', {}, v.n), h('span', {}, v.d))))),
+    h('p', { class: 'help', style: { marginTop: '12px' } }, T('之後也可以在「基本設定」換類型，內文和輸入欄位會保留。'))));
+}
+function addDialog(type) {
+  // 新的對話框放在目前選取的對話框所在的資料夾
+  const folder = (curDlg()?.id || '').split('/').slice(0, -1).join('/');
+  const d = newDialog(type, uniqueId((folder ? folder + '/' : '') + { multi_action: 'menu', notice: 'notice', confirmation: 'confirm', dialog_list: 'list', server_links: 'links' }[type]));
+  d.title = [seg(TYPES[type].n, { color: 'yellow', bold: true })];
+  if (type === 'multi_action') { d.body.push(plainMsg(T('選一個吧！'))); d.actions.push(btn(T('選項一')), btn(T('選項二'))); d.exit = btn(T('關閉')); }
+  if (type === 'notice') d.body.push(plainMsg(T('這是一則通知。')));
+  if (type === 'confirmation') { d.body.push(plainMsg(T('確定要這樣做嗎？'))); d.yes = btn(T('確定'), {}, act('cmds', { num: P.nextNum++ })); d.no = btn(T('取消')); }
+  if (type === 'dialog_list') { d.list = P.dialogs.slice(0, 3).map(x => ({ uid: uid(), ref: x.uid, extId: '' })); d.exit = btn(T('返回')); }
+  if (type === 'server_links') d.exit = btn(T('返回'));
+  const i = P.dialogs.findIndex(x => x.uid === curUid);
+  P.dialogs.splice(i < 0 ? P.dialogs.length : i + 1, 0, d);
+  if (!P.startUid) P.startUid = d.uid;
+  curUid = d.uid; tab = 'edit'; pvReset(); changed(true);
+}
+function importModal() {
+  const ta = h('textarea', { class: 'code', rows: 10, placeholder: T('貼上 dialog JSON（單一個，或 {"ns:id": {...}, ...} 多個）') });
+  const idIn = h('input', { type: 'text', class: 'mono', placeholder: T('新對話框的 ID（單一個時）'), value: 'imported' });
+  modal(T('📥 匯入對話框'), h('div', {},
+    h('div', { style: { fontWeight: 600, marginBottom: '4px' } }, T('匯入整個資料包（成為新專案）')),
+    h('p', { class: 'help' }, T('直接選資料包的 .zip 或資料夾，也可以選整個世界資料夾。會找出所有 data/<命名空間>/dialog/ 裡的對話框（含子資料夾），開成一個新專案，目前的專案不會被改到。')),
+    h('div', { class: 'addbar', style: { marginBottom: '6px' } },
+      h('button', { class: 'tb pri', onclick: () => $('#filePack').click() }, T('選擇 .zip…')),
+      h('button', { class: 'tb pri', onclick: () => $('#fileDir').click() }, T('選擇資料夾…'))),
+    h('p', { class: 'help', style: { marginBottom: '16px' } }, T('也可以把 .zip 直接拖進這個視窗。')),
+    h('div', { style: { fontWeight: 600, marginBottom: '4px', borderTop: '1px solid var(--line)', paddingTop: '12px' } }, T('或匯入單一對話框')),
+    h('p', { class: 'help' }, T('可以把現有資料包 data/<命名空間>/dialog/ 裡的 .json 一次選很多個匯入（檔名就是 ID），或直接貼上 JSON。匯入後會自動把互相開啟的按鈕接起來。')),
+    h('div', { class: 'addbar', style: { marginBottom: '10px' } }, h('button', { class: 'tb pri', onclick: () => $('#fileDlg').click() }, T('選擇 .json 檔案…'))),
+    ta, h('div', { style: { marginTop: '6px' } }, idIn)),
+    [h('button', { class: 'tb pri', onclick: () => {
+      try {
+        const j = JSON.parse(ta.value);
+        if (j && typeof j === 'object' && !j.type && Object.values(j).every(v => v && typeof v === 'object' && v.type)) importMany(Object.entries(j).map(([k, v]) => [k.includes(':') ? k.split(':')[1] : k, v, k.includes(':') ? k.split(':')[0] : null]));
+        else importMany([[idIn.value || 'imported', j, null]]);
+        closeModal();
+      } catch (e) { toast(T('JSON 格式錯誤：') + e.message, true); }
+    } }, T('匯入貼上的 JSON'))]);
+}
+function importMany(entries) {
+  // entries: [id, json, ns?]
+  const wasEmpty = !P.dialogs.length;
+  const nsHint = entries.map(e => e[2]).find(Boolean);
+  if (wasEmpty && nsHint) P.ns = nsHint;
+  let first = null;
+  // 推測命名空間：看按鈕參照的 ns:id 是否指到這批的 id
+  if (wasEmpty && !nsHint) {
+    const ids = new Set(entries.map(e => e[0]));
+    const s = JSON.stringify(entries.map(e => e[1]));
+    const m = [...s.matchAll(/"([a-z0-9_.\-]+):([a-z0-9_.\-/]+)"/g)].find(x => ids.has(x[2]));
+    if (m) P.ns = m[1];
+  }
+  for (const [id, j] of entries) {
+    const d = importDialog(j, uniqueId(id)); P.dialogs.push(d); first = first || d;
+  }
+  relinkRefs();
+  if (!P.startUid && first) P.startUid = first.uid;
+  if (first) { curUid = first.uid; pvReset(); }
+  changed(true); toast(T('已匯入 {0} 個對話框', entries.length));
+}
+
+/* ---------- 匯入整個資料包（.zip 或資料夾，也可以是整個世界） ---------- */
+// 只讀需要的檔：對話框、pack.mcmeta、對話框標籤、以及裡面又包的 .zip（世界裡的資料包）
+const RX_DLG = /(?:^|\/)data\/([a-z0-9_.\-]+)\/dialog\/(.+)\.json$/;
+const wantFile = p => RX_DLG.test(p) || /(?:^|\/)pack\.mcmeta$/.test(p) || /(?:^|\/)data\/minecraft\/tags\/dialog\/[^/]+\.json$/.test(p) || /\.zip$/i.test(p);
+async function inflateRaw(u8) {
+  if (typeof DecompressionStream === 'undefined') throw new Error(T('這個瀏覽器不支援解壓縮，請改用最新版 Chrome／Edge／Firefox，或先解壓再選資料夾'));
+  const s = new Blob([u8]).stream().pipeThrough(new DecompressionStream('deflate-raw'));
+  return new Uint8Array(await new Response(s).arrayBuffer());
+}
+// 讀 zip 的中央目錄（支援不壓縮與 deflate），回傳 [{path, data}]
+async function readZip(buf, prefix, out, depth = 0) {
+  const u8 = new Uint8Array(buf), dv = new DataView(buf);
+  let e = -1;
+  for (let i = u8.length - 22; i >= Math.max(0, u8.length - 65557); i--) if (dv.getUint32(i, true) === 0x06054b50) { e = i; break; }
+  if (e < 0) throw new Error(T('不是 zip 檔：{0}', prefix || 'zip'));
+  const n = dv.getUint16(e + 10, true); let p = dv.getUint32(e + 16, true);
+  const dec = new TextDecoder();
+  for (let k = 0; k < n; k++) {
+    if (dv.getUint32(p, true) !== 0x02014b50) break;
+    const method = dv.getUint16(p + 10, true), csize = dv.getUint32(p + 20, true);
+    const nl = dv.getUint16(p + 28, true), xl = dv.getUint16(p + 30, true), cl = dv.getUint16(p + 32, true), lo = dv.getUint32(p + 42, true);
+    const name = dec.decode(u8.subarray(p + 46, p + 46 + nl));
+    p += 46 + nl + xl + cl;
+    if (name.endsWith('/') || !wantFile(name)) continue;
+    const start = lo + 30 + dv.getUint16(lo + 26, true) + dv.getUint16(lo + 28, true);
+    const raw = u8.subarray(start, start + csize);
+    let data;
+    if (method === 0) data = raw.slice();
+    else if (method === 8) data = await inflateRaw(raw);
+    else continue;
+    if (/\.zip$/i.test(name)) { if (depth < 2) await readZip(data.buffer, prefix + name + '/', out, depth + 1); }
+    else out.push({ path: prefix + name, data });
+  }
+}
+// 把找到的檔案分成「資料包根目錄＋命名空間」一組一組
+function analyzePack(files) {
+  const dec = new TextDecoder(), groups = {}, bad = [];
+  const text = f => dec.decode(f.data).replace(/^﻿/, '');
+  for (const f of files) {
+    const m = RX_DLG.exec(f.path); if (!m) continue;
+    const root = f.path.slice(0, m.index + (f.path[m.index] === '/' ? 1 : 0));
+    const key = root + '|' + m[1];
+    const g = groups[key] = groups[key] || { root, ns: m[1], entries: [] };
+    try { g.entries.push([m[2], JSON.parse(text(f)), m[1]]); } catch { bad.push(f.path); }
+  }
+  for (const g of Object.values(groups)) {
+    const meta = files.find(f => f.path === g.root + 'pack.mcmeta');
+    if (meta) { try { g.meta = JSON.parse(text(meta)).pack; } catch { } }
+    g.tags = {};
+    for (const t of ['pause_screen_additions', 'quick_actions']) {
+      const f = files.find(x => x.path === g.root + `data/minecraft/tags/dialog/${t}.json`);
+      if (f) { try { g.tags[t] = (JSON.parse(text(f)).values || []).map(v => typeof v === 'string' ? v : v.id); } catch { } }
+    }
+    g.entries.sort((a, b) => a[0].localeCompare(b[0]));
+  }
+  return { groups: Object.values(groups).sort((a, b) => b.entries.length - a.entries.length), bad };
+}
+async function importPackFiles(files, name) {
+  toast(T('讀取中…'));
+  try {
+    const { groups, bad } = analyzePack(files);
+    if (!groups.length) { toast(T('找不到任何對話框（data/<命名空間>/dialog/*.json）'), true); return; }
+    const go = g => { importPackGroup(g, name, bad); closeModal(); };
+    if (groups.length === 1) return go(groups[0]);
+    modal(T('📥 匯入對話框'), h('div', {},
+      h('p', {}, T('這裡有好幾個資料包／命名空間，要匯入哪一個？')),
+      h('div', { class: 'plist' }, groups.map(g => h('div', { class: 'pitem' },
+        h('div', { class: 'tx' }, h('div', { class: 'mono' }, T('{0}（{1} 個對話框）', g.ns, g.entries.length)), h('small', {}, T('來自 {0}', g.root || T('（根目錄）')))),
+        h('button', { class: 'tb pri', onclick: () => go(g) }, T('匯入')))))));
+  } catch (err) { toast(T('讀取失敗：{0}', err.message), true); }
+}
+function importPackGroup(g, name, bad) {
+  saveNow();
+  const p = newProject(name || g.ns); p.ns = g.ns;
+  if (g.meta) {
+    const lo = g.meta.min_format ?? g.meta.pack_format, hi2 = g.meta.max_format ?? g.meta.pack_format;
+    if (lo != null) { p.packMin = Array.isArray(lo) ? lo[0] : lo; p.packMax = Array.isArray(hi2) ? hi2[0] : (hi2 ?? p.packMin); }
+    if (typeof g.meta.description === 'string') p.desc = g.meta.description;
+  }
+  P = p;
+  for (const [id, j] of g.entries) P.dialogs.push(importDialog(j, uniqueId(id)));
+  relinkRefs();
+  const inTag = (t, d) => (g.tags[t] || []).includes(refOf(d));
+  for (const d of P.dialogs) { d.tagPause = inTag('pause_screen_additions', d); d.tagQuick = inTag('quick_actions', d); }
+  // 起始對話框：放在快速動作／暫停畫面的優先，其次是沒有別人開啟它的
+  const incoming = new Set();
+  for (const d of P.dialogs) for (const b of allButtons(d)) for (const { t } of linkTargets(b.act)) if (t !== d) incoming.add(t.uid);
+  const start = P.dialogs.find(d => d.tagQuick || d.tagPause) || P.dialogs.find(d => !incoming.has(d.uid)) || P.dialogs[0];
+  P.startUid = start?.uid || null;
+  // 大資料包：資料夾預設全部收合（起始對話框所在的那層會自動展開）
+  for (const d of P.dialogs) { const parts = d.id.split('/'); for (let i = 1; i < parts.length; i++) closedFolders.add(foldKey(parts.slice(0, i).join('/'))); }
+  saveFolds();
+  openProject(P);
+  toast(T('已匯入「{0}」：{1} 個對話框', P.name, P.dialogs.length) + (bad.length ? T('，{0} 個檔案讀不了：{1}', bad.length, bad.slice(0, 3).join('、')) : ''), bad.length > 0);
+}
+async function readPickedFiles(list, zipName) {
+  const out = [];
+  for (const f of list) {
+    const path = f.webkitRelativePath || f.name;
+    if (!wantFile(path)) continue;
+    const buf = await f.arrayBuffer();
+    if (/\.zip$/i.test(path)) await readZip(buf, path === f.name && list.length === 1 ? '' : path + '/', out);
+    else out.push({ path, data: new Uint8Array(buf) });
+  }
+  return out;
+}
+function helpModal() {
+  const fb = feedbackUrl();
+  modal(T('？ 說明'), h('div', {}, h('div', { class: 'helpdoc', html: T('\n<p>Dialog 工坊是給地圖作者用的 Minecraft <b>對話框（dialog）</b>生成器，支援 1.21.6 以後的版本（含 26.x）。左邊管理對話框、中間編輯、右邊即時預覽，而且預覽裡的按鈕真的可以按：開啟其他對話框、執行的指令會列在下面的紀錄。</p>\n<h3>基本流程</h3>\n<ol>\n<li>「📁 專案」→ 選範本或空白專案。專案會自動存在瀏覽器裡。</li>\n<li>左邊「＋ 新增」加對話框，最常用的是<b>多按鈕選單</b>。</li>\n<li>每顆按鈕選「按下後」要做什麼：開另一個對話框、執行指令、送出輸入值…</li>\n<li>「📦 匯出資料包」下載 zip，放進存檔的 datapacks，<b>離開世界再重新進入</b>。</li>\n</ol>\n<h3>為什麼推薦「執行指令（自動產生資料包）」</h3>\n<p>對話框按鈕直接執行需要權限的指令（give、tp、function…）時，玩家會先看到一個確認畫面，沒有權限的玩家根本執行不了。這個選項改成讓按鈕送出 <code>/trigger 計分板 set 編號</code>（任何玩家都能用），工坊產生的資料包每 tick 偵測，再以那位玩家的身份執行你寫的指令。所以玩家不需要 OP，也不會看到確認畫面。編號固定不變，重新匯出也一樣。</p>\n<h3>輸入欄位</h3>\n<p>文字輸入、勾選框、選項切換、數值滑桿。用「把輸入欄位的值帶進指令」的按鈕，在樣板裡寫 <code>$(鍵名)</code> 代入。要免權限傳進資料包，只能用 <code>/trigger 計分板 set $(鍵名)</code>，而且值要是整數（選項 ID、勾選的真／假值設成數字）。</p>\n<h3>文字樣式</h3>\n<p>每段文字可以設顏色、粗體、斜體、底線、刪除線、亂碼；按「⋯」可以加翻譯鍵（多語系地圖）、滑鼠提示、點擊動作。「＋ 不同樣式的一段」可以在同一行混合不同顏色。</p>\n<h3>小技巧</h3>\n<ul>\n<li>流程圖分頁看整個選單怎麼串接，點節點直接跳過去編輯。</li>\n<li>要用資料包接著開下一個對話框時，「按鈕後」選「等待回應」，畫面不會閃回遊戲。</li>\n<li>JSON 分頁可以複製「內嵌」指令，不放檔案就能在遊戲裡貼上測試。</li>\n<li>Ctrl+Z／Ctrl+Y 復原重做（焦點不在輸入框時），Ctrl+S 下載專案檔。</li>\n<li>預覽的字型、換行位置是近似值，實際以遊戲內為準。</li>\n</ul>') }),
+    h('div', { class: 'helpdoc', html: T('<h3>讀別人的資料包</h3><p>「📥 匯入對話框 JSON」→「選擇 .zip…」或「選擇資料夾…」，可以直接打開別人的資料包，甚至整個世界資料夾，看看他們的對話框怎麼做。子資料夾會變成左邊可以展開、收合的資料夾。</p>') }),
+    h('p', { class: 'help', style: { marginTop: '16px', borderTop: '1px solid var(--line)', paddingTop: '10px' } }, T('版本 {0}', APP_VERSION), '　', T('製作：{0}', '小冰鳥Icebird'), fb ? ['　', h('a', { href: fb, target: '_blank', rel: 'noopener', style: { color: 'var(--accent2)' } }, T('💬 回報問題'))] : null)));
+}
+
+/* =====================================================================
+   範本
+   ===================================================================== */
+function tplBlank() {
+  const p = newProject(T('新專案')); P = p;
+  const d = newDialog('multi_action', 'main_menu');
+  d.title = [seg(T('主選單'), { color: 'gold', bold: true })];
+  d.body.push(plainMsg(T('歡迎！從這裡開始做你的對話框。')));
+  d.actions.push(btn(T('按鈕一')), btn(T('按鈕二'))); d.exit = btn(T('關閉'));
+  p.dialogs.push(d); p.startUid = d.uid; return p;
+}
+function tplDemo() {
+  const p = newProject(T('示範：冒險地圖選單')); P = p; p.ns = 'demo'; p.extraObjs = 'demo.diff';
+  const main = newDialog('multi_action', 'main_menu'), set = newDialog('multi_action', 'settings'), guide = newDialog('notice', 'guide'), shop = newDialog('multi_action', 'shop'), reset = newDialog('confirmation', 'confirm_reset');
+  main.title = [seg(T('冒險者選單'), { color: 'gold', bold: true })];
+  main.body.push(plainMsg([seg(T('歡迎來到 ')), seg(T('浮空群島'), { color: 'aqua', bold: true }), seg(T('！\n')), seg(T('按 G 也能隨時打開這個選單。'), { color: 'gray' })]));
+  main.actions = [
+    btn(T('▶ 開始冒險'), { label: [seg(T('▶ 開始冒險'), { color: 'green' })], tooltip: [seg(T('傳送到起點'))] }, act('cmds', { num: p.nextNum++, commands: T('tp @s 0 100 0\ntitle @s title {"text":"冒險開始！","color":"gold"}\nplaysound minecraft:ui.toast.challenge_complete master @s') })),
+    btn(T('⚙ 設定'), {}, act('show_dialog', { target: set.uid })),
+    btn(T('📖 冒險手冊'), {}, act('show_dialog', { target: guide.uid })),
+    btn(T('💰 商店'), { label: [seg(T('💰 商店'), { color: 'yellow' })] }, act('show_dialog', { target: shop.uid })),
+    btn(T('放棄進度…'), { label: [seg(T('放棄進度…'), { color: 'red' })] }, act('show_dialog', { target: reset.uid }))
+  ];
+  main.exit = btn(T('關閉')); main.tagQuick = true; main.pause = false;
+  set.title = [seg(T('設定'), { color: 'aqua', bold: true })];
+  set.body.push(plainMsg(T('調整之後按「套用難度」。'), { color: 'gray' }));
+  const diff = newInput('single_option'); diff.key = 'difficulty'; diff.label = [seg(T('難度'))];
+  diff.options = [{ uid: uid(), id: '1', display: [seg(T('簡單'), { color: 'green' })], initial: false }, { uid: uid(), id: '2', display: [seg(T('普通'), { color: 'yellow' })], initial: true }, { uid: uid(), id: '3', display: [seg(T('困難'), { color: 'red' })], initial: false }];
+  const fx = newInput('boolean'); fx.key = 'particles'; fx.label = [seg(T('顯示粒子特效'))]; fx.initialB = true; fx.onTrue = '1'; fx.onFalse = '0';
+  const vol = newInput('number_range'); vol.key = 'volume'; vol.label = [seg(T('音量'))]; vol.start = 0; vol.end = 100; vol.step = 10; vol.initialN = 50;
+  const name = newInput('text'); name.key = 'nickname'; name.label = [seg(T('隊伍名稱'))]; name.initial = T('冒險者'); name.maxLength = 16;
+  set.inputs = [diff, fx, vol, name];
+  set.actions = [btn(T('套用難度'), { tooltip: [seg(T('送出 /trigger demo.diff set 1～3'))] }, act('dyn_run', { template: '/trigger demo.diff set $(difficulty)' })), btn(T('返回'), {}, act('show_dialog', { target: main.uid }))];
+  set.after = 'close';
+  guide.title = [seg(T('冒險手冊'), { color: 'light_purple', bold: true })];
+  guide.body = [plainMsg([seg(T('第一章　'), { color: 'gold' }), seg(T('群島的傳說\n')), seg(T('很久以前，天空中漂浮著七座島嶼…'), { color: 'gray', italic: true })], {}), itemBody('minecraft:compass', T('指南針會指向下一座島。'))];
+  guide.body[0].width = 260;
+  guide.notice = btn(T('← 返回'), {}, act('show_dialog', { target: main.uid }));
+  shop.title = [seg(T('商店'), { color: 'yellow', bold: true })];
+  shop.body = [itemBody('minecraft:golden_apple', T('金蘋果 ×1　—　5 綠寶石')), itemBody('minecraft:diamond_sword', T('鑽石劍　—　20 綠寶石'))];
+  shop.actions = [
+    btn(T('買金蘋果'), { tooltip: [seg(T('需要 5 綠寶石'))] }, act('cmds', { num: p.nextNum++, commands: T('# 數一下身上的綠寶石（clear 數量 0 只計數不清除）\nexecute store result score #n demo.dlg run clear @s minecraft:emerald 0\nexecute if score #n demo.dlg matches 5.. run give @s minecraft:golden_apple\nexecute if score #n demo.dlg matches 5.. run clear @s minecraft:emerald 5\nexecute unless score #n demo.dlg matches 5.. run tellraw @s {"text":"綠寶石不夠！","color":"red"}'), thenOpen: shop.uid })),
+    btn(T('買鑽石劍'), { tooltip: [seg(T('需要 20 綠寶石'))] }, act('cmds', { num: p.nextNum++, commands: T('execute store result score #n demo.dlg run clear @s minecraft:emerald 0\nexecute if score #n demo.dlg matches 20.. run give @s minecraft:diamond_sword\nexecute if score #n demo.dlg matches 20.. run clear @s minecraft:emerald 20\nexecute unless score #n demo.dlg matches 20.. run tellraw @s {"text":"綠寶石不夠！","color":"red"}'), thenOpen: shop.uid }))
+  ];
+  shop.exit = btn(T('← 返回'), {}, act('show_dialog', { target: main.uid })); shop.after = 'wait_for_response';
+  reset.title = [seg(T('確定要放棄進度？'), { color: 'red', bold: true })];
+  reset.body.push(plainMsg(T('所有物品會被清空，回到大廳。'), { color: 'gray' }));
+  reset.yes = btn(T('確定放棄'), { label: [seg(T('確定放棄'), { color: 'red' })] }, act('cmds', { num: p.nextNum++, commands: 'clear @s\ntp @s 0 64 0' }));
+  reset.no = btn(T('再想想'), {}, act('show_dialog', { target: main.uid }));
+  p.dialogs = [main, set, guide, shop, reset]; p.startUid = main.uid;
+  return p;
+}
+const TEMPLATES = [
+  { n: T('空白專案'), d: T('一個主選單，從零開始。'), make: tplBlank },
+  { n: T('示範：冒險地圖選單'), d: T('主選單、設定（四種輸入）、手冊、商店、確認框，看看怎麼串。'), make: tplDemo }
+];
+
+/* =====================================================================
+   事件
+   ===================================================================== */
+$('#pName').oninput = e => { P.name = e.target.value; changed(); };
+$('#pNs').oninput = e => { P.ns = e.target.value.toLowerCase().replace(/[^a-z0-9_.\-]/g, '_'); changed(); };
+$('#pNs').onblur = e => { e.target.value = P.ns; };
+$('#bAddDlg').onclick = addDialogPicker;
+$('#bDupDlg').onclick = () => { const d = curDlg(); if (!d) return; const c = cloneFresh(d); c.id = uniqueId(d.id + '_copy'); P.dialogs.splice(P.dialogs.indexOf(d) + 1, 0, c); curUid = c.uid; pvReset(); changed(true); };
+$('#bDelDlg').onclick = () => {
+  const d = curDlg(); if (!d) return;
+  if (!confirm(T('刪除對話框「{0}」？（可以按 Ctrl+Z 復原）', plain(d.title) || d.id))) return;
+  const i = P.dialogs.indexOf(d); P.dialogs.splice(i, 1);
+  if (P.startUid === d.uid) P.startUid = P.dialogs[0]?.uid || null;
+  curUid = P.dialogs[Math.min(i, P.dialogs.length - 1)]?.uid || null; pvReset(); changed(true);
+};
+$('#bUpDlg').onclick = () => { const i = P.dialogs.findIndex(d => d.uid === curUid); if (i > 0) { P.dialogs.splice(i - 1, 0, P.dialogs.splice(i, 1)[0]); changed(true); } };
+$('#bDnDlg').onclick = () => { const i = P.dialogs.findIndex(d => d.uid === curUid); if (i >= 0 && i < P.dialogs.length - 1) { P.dialogs.splice(i + 1, 0, P.dialogs.splice(i, 1)[0]); changed(true); } };
+document.querySelectorAll('.tab').forEach(t => t.onclick = () => { tab = t.dataset.tab; renderMid(); });
+$('#bUndo').onclick = undo; $('#bRedo').onclick = redo;
+$('#bProj').onclick = projModal;
+$('#bSave').onclick = () => { download(`${P.name}.dlgproj.json`, JSON.stringify(P, null, 1)); toast(T('已下載專案檔')); };
+$('#bImport').onclick = importModal;
+$('#bExport').onclick = exportModal;
+$('#bHelp').onclick = helpModal;
+$('#fileProj').onchange = async e => {
+  const f = e.target.files[0]; e.target.value = ''; if (!f) return;
+  try {
+    const j = JSON.parse(await f.text());
+    if (!Array.isArray(j.dialogs)) throw new Error(T('不是 Dialog 工坊的專案檔'));
+    saveNow(); const all = loadAll(); if (all[j._id]) j._id = uid();
+    openProject(j); closeModal(); toast(T('已開啟「') + P.name + T('」'));
+  } catch (err) { toast(T('開啟失敗：') + err.message, true); }
+};
+$('#fileDlg').onchange = async e => {
+  const fs = [...e.target.files]; e.target.value = ''; if (!fs.length) return;
+  const entries = [];
+  for (const f of fs) { try { entries.push([f.name.replace(/\.json$/i, ''), JSON.parse(await f.text()), null]); } catch { toast(T('{0} 不是合法 JSON', f.name), true); } }
+  if (entries.length) { importMany(entries); closeModal(); }
+};
+async function pickPack(list, name) {
+  if (!list.length) return;
+  try { const files = await readPickedFiles(list); await importPackFiles(files, name); }
+  catch (err) { toast(T('讀取失敗：{0}', err.message), true); }
+}
+$('#filePack').onchange = e => { const fs = [...e.target.files]; e.target.value = ''; pickPack(fs, fs[0]?.name.replace(/\.zip$/i, '')); };
+$('#fileDir').onchange = e => { const fs = [...e.target.files]; e.target.value = ''; pickPack(fs, (fs[0]?.webkitRelativePath || '').split('/')[0]); };
+// 把 .zip 拖進視窗
+window.addEventListener('dragover', e => { if ([...(e.dataTransfer?.items || [])].some(i => i.kind === 'file')) e.preventDefault(); });
+window.addEventListener('drop', e => {
+  const fs = [...(e.dataTransfer?.files || [])]; if (!fs.length) return;
+  e.preventDefault();
+  if (fs.some(f => /\.zip$/i.test(f.name))) pickPack(fs.filter(f => /\.zip$/i.test(f.name)), fs[0].name.replace(/\.zip$/i, ''));
+  else toast(T('也可以把 .zip 直接拖進這個視窗。'));
+});
+$('#pvBack').onclick = () => { if (pv.stack.length > 1) { pv.stack.pop(); pv.closed = pv.waiting = false; renderPreview(); } };
+$('#pvReset').onclick = () => { pvReset(); renderPreview(); log('n', T('— 重來 —')); };
+$('#pvEsc').onclick = pvEsc;
+$('#pvClear').onclick = () => { $('#lg').innerHTML = ''; };
+$('#pvSize').onchange = () => { localStorage.setItem('dlgworkshop.pvsize', $('#pvSize').value); renderPreview(); };
+window.addEventListener('resize', fitPreview);
+new ResizeObserver(fitPreview).observe($('#pvWrap'));
+document.addEventListener('keydown', e => {
+  const inField = /^(INPUT|TEXTAREA|SELECT)$/.test(document.activeElement?.tagName);
+  if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 's') { e.preventDefault(); $('#bSave').click(); return; }
+  if (e.key === 'Escape') { if ($('#modal').classList.contains('on')) closeModal(); else if ($('#pop').style.display === 'block') closePop(); return; }
+  if (inField) return;
+  if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'z' && !e.shiftKey) { e.preventDefault(); undo(); }
+  if ((e.ctrlKey || e.metaKey) && (e.key.toLowerCase() === 'y' || (e.key.toLowerCase() === 'z' && e.shiftKey))) { e.preventDefault(); redo(); }
+});
+window.addEventListener('beforeunload', saveNow);
+
+// ---------- 啟動 ----------
+// ---------- 版本與回報 ----------
+const APP_VERSION = '0.9';
+// 放在 GitHub Pages（使用者.github.io/儲存庫）時，回報按鈕自動指向那個儲存庫的 Issues
+function repoUrl() {
+  const host = location.hostname; if (!host.endsWith('.github.io')) return null;
+  const user = host.split('.')[0], seg = location.pathname.split('/').filter(Boolean)[0];
+  return `https://github.com/${user}/${seg && !seg.includes('.') ? seg : host}`;
+}
+function feedbackUrl(kind = 'bug.yml') {
+  const r = repoUrl(); if (!r) return null;
+  const q = new URLSearchParams({ template: kind, version: APP_VERSION, lang: LANG, browser: navigator.userAgent.slice(0, 200) });
+  return `${r}/issues/new?${q}`;
+}
+(function boot() {
+  translateStatic();
+  $('#ver').textContent = 'v' + APP_VERSION + ' ' + T('測試版');
+  if (feedbackUrl()) { const fb = $('#bFeedback'); fb.style.display = ''; fb.title = T('回報問題或建議（需要 GitHub 帳號）'); fb.onclick = () => window.open(feedbackUrl(), '_blank', 'noopener'); }
+  const bl = $('#bLang'); for (const [k, v] of Object.entries(LANGS)) bl.append(h('option', { value: k }, v)); bl.value = LANG;
+  bl.onchange = () => { saveNow(); localStorage.setItem('dlgworkshop.lang', bl.value); const u = new URL(location.href); u.searchParams.delete('lang'); location.href = u.href; };
+  const sz = localStorage.getItem('dlgworkshop.pvsize'); if (sz) $('#pvSize').value = sz;
+  const all = loadAll(), cur = all[localStorage.getItem(LS_CUR)];
+  const first = cur || Object.values(all).sort((a, b) => b.t - a.t)[0];
+  openProject(first ? first.data : tplDemo());
+  if (!first) setTimeout(() => toast(T('已載入示範專案，按「📁 專案」可以開新的空白專案')), 300);
+})();
+</script>
+</body>
+</html>
